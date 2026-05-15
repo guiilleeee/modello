@@ -156,13 +156,10 @@ class _NexusAppState extends State<NexusApp> {
             },
             child: Actions(
               actions: <Type, Action<Intent>>{
-                ToggleLanguageIntent: ContextAction<ToggleLanguageIntent>(
-                  invoke: (ToggleLanguageIntent intent, BuildContext? context) {
+                ToggleLanguageIntent: CallbackAction<ToggleLanguageIntent>(
+                  onInvoke: (ToggleLanguageIntent intent) {
                     final nextLang = AppLanguage.values[(_localeController.language.index + 1) % AppLanguage.values.length];
                     _localeController.setLanguage(nextLang);
-                    if (context != null) {
-                      NexusNotification.show(context, 'Language changed to ${nextLang.semanticName}');
-                    }
                     return null;
                   },
                 ),
