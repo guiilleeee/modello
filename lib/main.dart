@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -91,9 +90,6 @@ class NexusDesktopScrollBehavior extends MaterialScrollBehavior {
       };
 }
 
-class ToggleLanguageIntent extends Intent {
-  const ToggleLanguageIntent();
-}
 
 class NexusApp extends StatefulWidget {
   const NexusApp({required this.initialLanguage, required this.prefs, super.key});
@@ -147,26 +143,7 @@ class _NexusAppState extends State<NexusApp> {
               selectionColor: Color(0x3347F3A3),
             ),
           ),
-          home: Shortcuts(
-            shortcuts: <LogicalKeySet, Intent>{
-              LogicalKeySet(
-                Platform.isMacOS ? LogicalKeyboardKey.meta : LogicalKeyboardKey.control,
-                LogicalKeyboardKey.keyL,
-              ): const ToggleLanguageIntent(),
-            },
-            child: Actions(
-              actions: <Type, Action<Intent>>{
-                ToggleLanguageIntent: CallbackAction<ToggleLanguageIntent>(
-                  onInvoke: (ToggleLanguageIntent intent) {
-                    final nextLang = AppLanguage.values[(_localeController.language.index + 1) % AppLanguage.values.length];
-                    _localeController.setLanguage(nextLang);
-                    return null;
-                  },
-                ),
-              },
-              child: LiveViewScreen(controller: _localeController),
-            ),
-          ),
+          home: LiveViewScreen(controller: _localeController),
         );
       },
     );
