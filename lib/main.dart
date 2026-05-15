@@ -1042,10 +1042,22 @@ class _LiveViewScreenState extends State<LiveViewScreen> {
                                   onLanguageChanged: widget.controller.setLanguage,
                                 ),
                                 Expanded(
-                                  child: LiveDashboard(
-                                    language: language,
-                                    orders: _orders,
-                                    onOrderStageChanged: _moveOrder,
+                                  child: IndexedStack(
+                                    index: _navIndex,
+                                    children: [
+                                      LiveDashboard(
+                                        language: language,
+                                        orders: _orders,
+                                        onOrderStageChanged: _moveOrder,
+                                      ),
+                                      FloorScreen(language: language),
+                                      KitchenScreen(
+                                        language: language,
+                                        orders: _orders,
+                                        onOrderStageChanged: _moveOrder,
+                                      ),
+                                      InsightsScreen(language: language),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -1178,72 +1190,99 @@ class LiveDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 1160;
-        final compact = constraints.maxWidth < 760;
-        final padding = EdgeInsets.fromLTRB(
-          compact ? 16 : 24,
-          14,
-          compact ? 16 : 24,
-          compact ? 92 : 24,
-        );
-
-        if (wide) {
-          final panelHeight = math.max(520.0, constraints.maxHeight - 164);
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: padding,
-            child: Column(
-              children: [
-                KpiStrip(language: language),
-                const SizedBox(height: 18),
-                SizedBox(
-                  height: panelHeight,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        flex: 5,
-                        child: ThermalTableMap(
-                          language: language,
-                          fillHeight: true,
-                        ),
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        flex: 4,
-                        child: OperativeKanban(
-                          language: language,
-                          orders: orders,
-                          onOrderStageChanged: onOrderStageChanged,
-                          fillHeight: true,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: padding,
-          children: [
-            KpiStrip(language: language),
-            const SizedBox(height: 16),
-            ThermalTableMap(language: language),
-            const SizedBox(height: 16),
-            OperativeKanban(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 16),
+      child: Column(
+        children: [
+          KpiStrip(language: language),
+          const SizedBox(height: 14),
+          Expanded(
+            child: OperativeKanban(
               language: language,
               orders: orders,
               onOrderStageChanged: onOrderStageChanged,
+              fillHeight: true,
             ),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FloorScreen extends StatelessWidget {
+  const FloorScreen({required this.language, super.key});
+  final AppLanguage language;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 16),
+      child: ThermalTableMap(language: language, fillHeight: true),
+    );
+  }
+}
+
+class KitchenScreen extends StatelessWidget {
+  const KitchenScreen({
+    required this.language,
+    required this.orders,
+    required this.onOrderStageChanged,
+    super.key,
+  });
+  final AppLanguage language;
+  final List<LiveOrder> orders;
+  final void Function(LiveOrder order, OrderStage stage) onOrderStageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 16),
+      child: OperativeKanban(
+        language: language,
+        orders: orders,
+        onOrderStageChanged: onOrderStageChanged,
+        fillHeight: true,
+      ),
+    );
+  }
+}
+
+class InsightsScreen extends StatelessWidget {
+  const InsightsScreen({required this.language, super.key});
+  final AppLanguage language;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const NexusGlyph(
+            type: NexusGlyphType.insight,
+            color: NexusColors.textMuted,
+            size: 48,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            L10n.t(language, 'navInsights'),
+            style: const TextStyle(
+              color: NexusColors.textSecondary,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Coming soon',
+            style: TextStyle(
+              color: NexusColors.textMuted,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1275,31 +1314,27 @@ class NexusTopBar extends StatelessWidget {
               const NexusWordmark(),
               const SizedBox(width: 16),
               Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  child: compact
-                      ? const SizedBox.shrink(key: ValueKey('compact-title'))
-                      : Column(
-                          key: ValueKey('title-${language.code}'),
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              L10n.t(language, 'appSubtitle'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: NexusColors.textPrimary,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0,
-                              ),
+                child: compact
+                    ? const SizedBox.shrink()
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            L10n.t(language, 'appSubtitle'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: NexusColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0,
                             ),
-                            const SizedBox(height: 5),
-                            LiveSyncLabel(language: language),
-                          ],
-                        ),
-                ),
+                          ),
+                          const SizedBox(height: 5),
+                          LiveSyncLabel(language: language),
+                        ],
+                      ),
               ),
               LanguageSegmentedControl(
                 language: language,
@@ -1461,9 +1496,7 @@ class LanguageSegmentedControl extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 splashColor: NexusColors.accentGreen.withValues(alpha: 0.08),
                 onTap: () => onChanged(item),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 210),
-                  curve: Curves.easeOutCubic,
+                child: Container(
                   width: 42,
                   height: 32,
                   alignment: Alignment.center,
@@ -1644,9 +1677,7 @@ class NexusNavButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       splashColor: NexusColors.accentGreen.withValues(alpha: 0.08),
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
+      child: Container(
         height: 70,
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
@@ -1655,15 +1686,6 @@ class NexusNavButton extends StatelessWidget {
           border: Border.all(
             color: selected ? NexusColors.borderBright : Colors.transparent,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.24),
-                    blurRadius: 18,
-                    offset: const Offset(0, 10),
-                  ),
-                ]
-              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1713,9 +1735,7 @@ class NexusBottomNavButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       splashColor: NexusColors.accentGreen.withValues(alpha: 0.08),
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
+      child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 2),
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
@@ -1773,10 +1793,7 @@ class KpiStrip extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               itemBuilder: (context, index) => SizedBox(
                 width: 228,
-                child: EntranceMotion(
-                  index: index,
-                  child: KpiCard(metric: metrics[index], language: language),
-                ),
+                child: KpiCard(metric: metrics[index], language: language),
               ),
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemCount: metrics.length,
@@ -1788,10 +1805,7 @@ class KpiStrip extends StatelessWidget {
           children: [
             for (var i = 0; i < metrics.length; i++) ...[
               Expanded(
-                child: EntranceMotion(
-                  index: i,
-                  child: KpiCard(metric: metrics[i], language: language),
-                ),
+                child: KpiCard(metric: metrics[i], language: language),
               ),
               if (i != metrics.length - 1) const SizedBox(width: 14),
             ],
@@ -1810,21 +1824,12 @@ class KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.all(18),
+    return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: NexusColors.panel,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: NexusColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 24,
-            offset: const Offset(0, 14),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1849,19 +1854,15 @@ class KpiCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: Text(
-                    L10n.t(language, metric.labelKey),
-                    key: ValueKey('${language.code}-${metric.labelKey}'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: NexusColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0,
-                    ),
+                child: Text(
+                  L10n.t(language, metric.labelKey),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: NexusColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0,
                   ),
                 ),
               ),
@@ -1882,8 +1883,7 @@ class KpiCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
+              Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                 decoration: BoxDecoration(
                   color: metric.positive
@@ -1950,7 +1950,7 @@ class ThermalTableMap extends StatelessWidget {
       expandChild: fillHeight,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final columns = constraints.maxWidth >= 620 ? 6 : 4;
+          final columns = constraints.maxWidth >= 900 ? 8 : constraints.maxWidth >= 620 ? 6 : 4;
           return GridView.builder(
             physics: fillHeight
                 ? const BouncingScrollPhysics()
@@ -1959,15 +1959,12 @@ class ThermalTableMap extends StatelessWidget {
             itemCount: tables.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: columns,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: columns == 6 ? 1.05 : 0.98,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 1.0,
             ),
             itemBuilder: (context, index) {
-              return EntranceMotion(
-                index: index,
-                child: TableTile(table: tables[index], language: language),
-              );
+              return TableTile(table: tables[index], language: language);
             },
           );
         },
@@ -1976,137 +1973,90 @@ class ThermalTableMap extends StatelessWidget {
   }
 }
 
-class TableTile extends StatefulWidget {
+class TableTile extends StatelessWidget {
   const TableTile({required this.table, required this.language, super.key});
 
   final FloorTable table;
   final AppLanguage language;
 
   @override
-  State<TableTile> createState() => _TableTileState();
-}
-
-class _TableTileState extends State<TableTile> {
-  bool _pressed = false;
-
-  @override
   Widget build(BuildContext context) {
-    final accent = tableMoodColor(widget.table.mood);
-    final critical = widget.table.mood == TableMood.critical;
-    final waiting = widget.table.mood == TableMood.waiting;
-    final seated = widget.table.mood == TableMood.seated;
-    final shape = widget.table.shape == TableShape.round;
-    final status = tableMoodLabel(widget.language, widget.table.mood);
-    final borderRadius = BorderRadius.circular(shape ? 999 : 18);
+    final accent = tableMoodColor(table.mood);
+    final critical = table.mood == TableMood.critical;
+    final waiting = table.mood == TableMood.waiting;
+    final seated = table.mood == TableMood.seated;
+    final shape = table.shape == TableShape.round;
+    final status = tableMoodLabel(language, table.mood);
+    final borderRadius = BorderRadius.circular(shape ? 999 : 14);
 
     return Semantics(
       button: true,
-      label:
-          '${L10n.t(widget.language, 'table')} ${widget.table.number}, $status',
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        child: AnimatedScale(
-          scale: _pressed ? 0.96 : 1,
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOutCubic,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              shape: shape ? BoxShape.circle : BoxShape.rectangle,
-              borderRadius: shape ? null : borderRadius,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  accent.withValues(
-                    alpha: critical
-                        ? 0.22
-                        : waiting
-                            ? 0.16
-                            : seated
-                                ? 0.13
-                                : 0.05,
-                  ),
-                  NexusColors.panelHigh,
-                ],
-              ),
-              border: Border.all(
-                color: accent.withValues(
-                  alpha: critical
-                      ? 0.65
-                      : waiting || seated
-                          ? 0.42
-                          : 0.18,
-                ),
-                width: critical ? 1.4 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: accent.withValues(alpha: critical ? 0.18 : 0.08),
-                  blurRadius: critical ? 22 : 14,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+      label: '${L10n.t(language, 'table')} ${table.number}, $status',
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          shape: shape ? BoxShape.circle : BoxShape.rectangle,
+          borderRadius: shape ? null : borderRadius,
+          color: accent.withValues(
+            alpha: critical ? 0.15 : waiting ? 0.10 : seated ? 0.08 : 0.04,
+          ),
+          border: Border.all(
+            color: accent.withValues(
+              alpha: critical ? 0.55 : waiting || seated ? 0.35 : 0.15,
             ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${widget.table.number}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: NexusColors.textPrimary,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${widget.table.seats} ${L10n.t(widget.language, 'covers')}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: NexusColors.textMuted,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.11),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '${widget.table.waitMinutes} ${L10n.t(widget.language, 'min')}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: accent == NexusColors.textMuted
-                            ? NexusColors.textSecondary
-                            : accent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ),
-                ],
+            width: critical ? 1.4 : 1,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${table.number}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: NexusColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0,
+                ),
               ),
-            ),
+              const SizedBox(height: 3),
+              Text(
+                '${table.seats} ${L10n.t(language, 'covers')}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: NexusColors.textMuted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${table.waitMinutes} ${L10n.t(language, 'min')}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: accent == NexusColors.textMuted
+                        ? NexusColors.textSecondary
+                        : accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -2137,13 +2087,35 @@ class OperativeKanban extends StatelessWidget {
       expandChild: fillHeight,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 700;
+
+          if (wide) {
+            // Use Expanded columns to fill all available width
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final stage in OrderStage.values) ...[
+                  Expanded(
+                    child: OrderColumn(
+                      stage: stage,
+                      language: language,
+                      orders: orders
+                          .where((order) => order.stage == stage)
+                          .toList(growable: false),
+                      onOrderStageChanged: onOrderStageChanged,
+                    ),
+                  ),
+                  if (stage != OrderStage.values.last)
+                    const SizedBox(width: 10),
+                ],
+              ],
+            );
+          }
+
+          // Narrow: horizontal scroll with fixed-width columns
           final availableHeight =
               constraints.maxHeight.isFinite ? constraints.maxHeight : 520.0;
           final height = fillHeight ? availableHeight : 520.0;
-          final columnWidth = constraints.maxWidth >= 920
-              ? math.max(252.0, (constraints.maxWidth - 28) / 3)
-              : 284.0;
-
           return SizedBox(
             height: height,
             child: SingleChildScrollView(
@@ -2154,7 +2126,7 @@ class OperativeKanban extends StatelessWidget {
                 children: [
                   for (final stage in OrderStage.values) ...[
                     SizedBox(
-                      width: columnWidth,
+                      width: 284,
                       child: OrderColumn(
                         stage: stage,
                         language: language,
@@ -2165,7 +2137,7 @@ class OperativeKanban extends StatelessWidget {
                       ),
                     ),
                     if (stage != OrderStage.values.last)
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 10),
                   ],
                 ],
               ),
@@ -2200,15 +2172,13 @@ class OrderColumn extends StatelessWidget {
           onOrderStageChanged(details.data, stage),
       builder: (context, candidateData, rejectedData) {
         final active = candidateData.isNotEmpty;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
+        return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: active
                 ? accent.withValues(alpha: 0.10)
                 : NexusColors.backgroundElevated,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color:
                   active ? accent.withValues(alpha: 0.48) : NexusColors.border,
@@ -2235,19 +2205,15 @@ class OrderColumn extends StatelessWidget {
                   ),
                   const SizedBox(width: 9),
                   Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 180),
-                      child: Text(
-                        stageLabel(language, stage),
-                        key: ValueKey('${language.code}-$stage'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: NexusColors.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0,
-                        ),
+                    child: Text(
+                      stageLabel(language, stage),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: NexusColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0,
                       ),
                     ),
                   ),
@@ -2264,10 +2230,7 @@ class OrderColumn extends StatelessWidget {
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final order = orders[index];
-                          return EntranceMotion(
-                            index: index,
-                            child: OrderCard(order: order, language: language),
-                          );
+                          return OrderCard(order: order, language: language);
                         },
                       ),
               ),
@@ -2287,8 +2250,7 @@ class CountPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.11),
@@ -2353,9 +2315,8 @@ class OrderCard extends StatelessWidget {
           child: Transform.rotate(angle: -0.018, child: child),
         ),
       ),
-      childWhenDragging: AnimatedOpacity(
+      childWhenDragging: Opacity(
         opacity: 0.35,
-        duration: const Duration(milliseconds: 160),
         child: child,
       ),
       child: child,
@@ -2383,25 +2344,16 @@ class _OrderCardSurface extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         splashColor: accent.withValues(alpha: 0.08),
         onTap: () {},
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
+        child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: NexusColors.panel,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: order.priority
                   ? NexusColors.accentRed.withValues(alpha: 0.46)
                   : NexusColors.border,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.20),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2573,21 +2525,12 @@ class NexusPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.all(16),
+    return Container(
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: NexusColors.panel,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: NexusColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.24),
-            blurRadius: 26,
-            offset: const Offset(0, 16),
-          ),
-        ],
       ),
       child: Column(
         mainAxisSize: expandChild ? MainAxisSize.max : MainAxisSize.min,
@@ -2607,19 +2550,15 @@ class NexusPanel extends StatelessWidget {
               ),
               const SizedBox(width: 11),
               Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: Text(
-                    title,
-                    key: ValueKey(title),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: NexusColors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0,
-                    ),
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: NexusColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0,
                   ),
                 ),
               ),
