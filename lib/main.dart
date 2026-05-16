@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -9,17 +9,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
-    windowManager.waitUntilReadyToShow(const WindowOptions(
-      size: Size(1280, 800), minimumSize: Size(1280, 800), center: true,
-      backgroundColor: Colors.transparent, skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.hidden, title: 'Nexus',
-    ), () async { await windowManager.show(); await windowManager.focus(); });
+    windowManager.waitUntilReadyToShow(const WindowOptions(size: Size(1280, 800), minimumSize: Size(1280, 800), center: true,
+      backgroundColor: Colors.transparent, skipTaskbar: false, titleBarStyle: TitleBarStyle.hidden, title: 'Nexus POS'),
+      () async { await windowManager.show(); await windowManager.focus(); });
   }
   final prefs = await SharedPreferences.getInstance();
-  final langCode = prefs.getString('language') ?? 'ES';
-  final lang = AppLanguage.values.firstWhere((e) => e.code == langCode, orElse: () => AppLanguage.es);
-  final name = prefs.getString('restaurantName') ?? 'Nexus Restaurant';
-  runApp(NexusApp(initialLanguage: lang, initialName: name, prefs: prefs));
+  final lc = prefs.getString('language') ?? 'ES';
+  final lang = AppLanguage.values.firstWhere((e) => e.code == lc, orElse: () => AppLanguage.es);
+  final name = prefs.getString('restaurantName') ?? 'La Taverna del Mar';
+  runApp(NexusApp(lang: lang, name: name, prefs: prefs));
 }
 
 enum AppLanguage { ca, es, en }
@@ -29,344 +27,266 @@ extension AppLanguageMeta on AppLanguage {
 }
 
 class AppController extends ChangeNotifier {
-  AppController(this._language, this._restaurantName, this._prefs);
-  AppLanguage _language; String _restaurantName; final SharedPreferences _prefs;
-  AppLanguage get language => _language;
-  String get restaurantName => _restaurantName;
-  void setLanguage(AppLanguage v) { if (_language == v) return; _language = v; _prefs.setString('language', v.code); notifyListeners(); }
-  void setRestaurantName(String v) { _restaurantName = v; _prefs.setString('restaurantName', v); notifyListeners(); }
+  AppController(this._lang, this._name, this._prefs);
+  AppLanguage _lang; String _name; final SharedPreferences _prefs;
+  AppLanguage get language => _lang;
+  String get restaurantName => _name;
+  void setLanguage(AppLanguage v) { if (_lang == v) return; _lang = v; _prefs.setString('language', v.code); notifyListeners(); }
+  void setName(String v) { _name = v; _prefs.setString('restaurantName', v); notifyListeners(); }
+}
+
+class C {
+  static const bg = Color(0xFFF9F8F6);
+  static const surface = Color(0xFFFFFFFF);
+  static const warm = Color(0xFFF5F3EF);
+  static const border = Color(0xFFD4CFC7);
+  static const borderLight = Color(0xFFE8E4DD);
+  static const text = Color(0xFF2C2420);
+  static const textSec = Color(0xFF6B6158);
+  static const textMut = Color(0xFF9C9488);
+  static const burg = Color(0xFF722F37);
+  static const burgBg = Color(0xFFF5E6E8);
+  static const forest = Color(0xFF2D6B3F);
+  static const forestBg = Color(0xFFE3F0E6);
+  static const navy = Color(0xFF1B3A5C);
+  static const navyBg = Color(0xFFE0EAF2);
+  static const amber = Color(0xFFB8860B);
+  static const amberBg = Color(0xFFFDF3D7);
+  static const danger = Color(0xFFC43E3E);
+  static const dangerBg = Color(0xFFFCE8E8);
+  static const grey = Color(0xFF7A7672);
+  static const greyBg = Color(0xFFEDEBE8);
 }
 
 class NexusDesktopScrollBehavior extends MaterialScrollBehavior {
   const NexusDesktopScrollBehavior();
-  @override Set<PointerDeviceKind> get dragDevices => { PointerDeviceKind.touch, PointerDeviceKind.mouse, PointerDeviceKind.stylus, PointerDeviceKind.trackpad };
-}
-
-class Nx {
-  static const bg = Color(0xFFF5F6F8);
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceAlt = Color(0xFFF9FAFB);
-  static const border = Color(0xFFE5E7EB);
-  static const borderLight = Color(0xFFF3F4F6);
-  static const textPrimary = Color(0xFF111827);
-  static const textSecondary = Color(0xFF6B7280);
-  static const textMuted = Color(0xFF9CA3AF);
-  static const primary = Color(0xFF2563EB);
-  static const primaryBg = Color(0xFFDBEAFE);
-  static const success = Color(0xFF059669);
-  static const successBg = Color(0xFFD1FAE5);
-  static const warning = Color(0xFFD97706);
-  static const warningBg = Color(0xFFFEF3C7);
-  static const danger = Color(0xFFDC2626);
-  static const dangerBg = Color(0xFFFEE2E2);
-  static const info = Color(0xFF7C3AED);
-  static const infoBg = Color(0xFFEDE9FE);
-  static const shadow = Color(0x0A000000);
+  @override Set<PointerDeviceKind> get dragDevices => {PointerDeviceKind.touch, PointerDeviceKind.mouse, PointerDeviceKind.stylus, PointerDeviceKind.trackpad};
 }
 
 class NexusApp extends StatefulWidget {
-  const NexusApp({required this.initialLanguage, required this.initialName, required this.prefs, super.key});
-  final AppLanguage initialLanguage; final String initialName; final SharedPreferences prefs;
+  const NexusApp({required this.lang, required this.name, required this.prefs, super.key});
+  final AppLanguage lang; final String name; final SharedPreferences prefs;
   @override State<NexusApp> createState() => _NexusAppState();
 }
 class _NexusAppState extends State<NexusApp> {
   late final AppController _ctrl;
-  @override void initState() { super.initState(); _ctrl = AppController(widget.initialLanguage, widget.initialName, widget.prefs); }
+  @override void initState() { super.initState(); _ctrl = AppController(widget.lang, widget.name, widget.prefs); }
   @override void dispose() { _ctrl.dispose(); super.dispose(); }
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(animation: _ctrl, builder: (context, _) {
-      return MaterialApp(
-        debugShowCheckedModeBanner: false, title: 'Nexus',
-        scrollBehavior: const NexusDesktopScrollBehavior(),
-        theme: ThemeData(useMaterial3: true, brightness: Brightness.light, scaffoldBackgroundColor: Nx.bg, fontFamily: 'Inter',
-          colorScheme: const ColorScheme.light(surface: Nx.surface, primary: Nx.primary, secondary: Nx.info, error: Nx.danger),
-          splashColor: Nx.primary.withValues(alpha: 0.06), highlightColor: Nx.primary.withValues(alpha: 0.03),
-        ),
-        home: LiveViewScreen(controller: _ctrl),
-      );
-    });
+  @override Widget build(BuildContext context) {
+    return AnimatedBuilder(animation: _ctrl, builder: (ctx, _) => MaterialApp(
+      debugShowCheckedModeBanner: false, title: 'Nexus POS', scrollBehavior: const NexusDesktopScrollBehavior(),
+      theme: ThemeData(useMaterial3: true, brightness: Brightness.light, scaffoldBackgroundColor: C.bg, fontFamily: 'Inter',
+        colorScheme: const ColorScheme.light(surface: C.surface, primary: C.burg, secondary: C.navy, error: C.danger)),
+      home: MainShell(ctrl: _ctrl),
+    ));
   }
 }
 
-class L10n {
+// === L10N ===
+class T {
   static final Map<String, Map<AppLanguage, String>> _v = {
-    'appSubtitle': {AppLanguage.ca: 'Control operatiu en directe', AppLanguage.es: 'Control operativo en directo', AppLanguage.en: 'Live operations control'},
     'synced': {AppLanguage.ca: 'Sincronitzat', AppLanguage.es: 'Sincronizado', AppLanguage.en: 'Synced'},
     'navLive': {AppLanguage.ca: 'Directe', AppLanguage.es: 'Directo', AppLanguage.en: 'Live'},
     'navFloor': {AppLanguage.ca: 'Sala', AppLanguage.es: 'Sala', AppLanguage.en: 'Floor'},
     'navKitchen': {AppLanguage.ca: 'Cuina', AppLanguage.es: 'Cocina', AppLanguage.en: 'Kitchen'},
-    'navInsights': {AppLanguage.ca: 'Analisi', AppLanguage.es: 'Analisis', AppLanguage.en: 'Insights'},
+    'navProducts': {AppLanguage.ca: 'Productes', AppLanguage.es: 'Productos', AppLanguage.en: 'Products'},
     'navSettings': {AppLanguage.ca: 'Config.', AppLanguage.es: 'Config.', AppLanguage.en: 'Settings'},
-    'kpis': {AppLanguage.ca: 'Indicadors', AppLanguage.es: 'Indicadores', AppLanguage.en: 'KPIs'},
-    'floorMap': {AppLanguage.ca: 'Mapa de taules', AppLanguage.es: 'Mapa de mesas', AppLanguage.en: 'Table map'},
-    'liveOrders': {AppLanguage.ca: 'Comandes en directe', AppLanguage.es: 'Pedidos en directo', AppLanguage.en: 'Live orders'},
+    'floorMap': {AppLanguage.ca: 'Mapa de sala', AppLanguage.es: 'Mapa de sala', AppLanguage.en: 'Floor plan'},
+    'liveOrders': {AppLanguage.ca: 'Comandes', AppLanguage.es: 'Pedidos', AppLanguage.en: 'Orders'},
     'revenueToday': {AppLanguage.ca: 'Ingressos avui', AppLanguage.es: 'Ingresos hoy', AppLanguage.en: 'Revenue today'},
     'averageTicket': {AppLanguage.ca: 'Tiquet mitja', AppLanguage.es: 'Ticket medio', AppLanguage.en: 'Avg. ticket'},
     'activeTables': {AppLanguage.ca: 'Taules actives', AppLanguage.es: 'Mesas activas', AppLanguage.en: 'Active tables'},
     'averageWait': {AppLanguage.ca: 'Espera mitjana', AppLanguage.es: 'Espera media', AppLanguage.en: 'Avg. wait'},
     'vsYesterday': {AppLanguage.ca: 'vs ahir', AppLanguage.es: 'vs ayer', AppLanguage.en: 'vs yesterday'},
-    'lowerIsBetter': {AppLanguage.ca: 'millora operativa', AppLanguage.es: 'mejora operativa', AppLanguage.en: 'operational lift'},
     'coverage': {AppLanguage.ca: 'cobertura', AppLanguage.es: 'cobertura', AppLanguage.en: 'coverage'},
+    'improvement': {AppLanguage.ca: 'millora', AppLanguage.es: 'mejora', AppLanguage.en: 'improvement'},
     'stageNew': {AppLanguage.ca: 'Nous', AppLanguage.es: 'Nuevos', AppLanguage.en: 'New'},
     'stageCooking': {AppLanguage.ca: 'Preparant', AppLanguage.es: 'Cocinando', AppLanguage.en: 'Cooking'},
     'stageReady': {AppLanguage.ca: 'Llestos', AppLanguage.es: 'Listos', AppLanguage.en: 'Ready'},
     'table': {AppLanguage.ca: 'Taula', AppLanguage.es: 'Mesa', AppLanguage.en: 'Table'},
-    'covers': {AppLanguage.ca: 'coberts', AppLanguage.es: 'cubiertos', AppLanguage.en: 'covers'},
+    'covers': {AppLanguage.ca: 'pax', AppLanguage.es: 'pax', AppLanguage.en: 'pax'},
     'min': {AppLanguage.ca: 'min', AppLanguage.es: 'min', AppLanguage.en: 'min'},
-    'guests': {AppLanguage.ca: 'comensals', AppLanguage.es: 'comensales', AppLanguage.en: 'guests'},
+    'guests': {AppLanguage.ca: 'com.', AppLanguage.es: 'com.', AppLanguage.en: 'guests'},
     'noOrders': {AppLanguage.ca: 'Sense comandes', AppLanguage.es: 'Sin pedidos', AppLanguage.en: 'No orders'},
-    'statusSeated': {AppLanguage.ca: 'Nova taula', AppLanguage.es: 'Nueva mesa', AppLanguage.en: 'Just seated'},
-    'statusFlowing': {AppLanguage.ca: 'En ritme', AppLanguage.es: 'En ritmo', AppLanguage.en: 'Flowing'},
-    'statusWaiting': {AppLanguage.ca: 'Esperant', AppLanguage.es: 'Esperando', AppLanguage.en: 'Waiting'},
-    'statusCritical': {AppLanguage.ca: 'Atencio', AppLanguage.es: 'Atencion', AppLanguage.en: 'Attention'},
-    'priority': {AppLanguage.ca: 'Prioritari', AppLanguage.es: 'Prioritario', AppLanguage.en: 'Priority'},
-    'moveTo': {AppLanguage.ca: 'Moure a', AppLanguage.es: 'Mover a', AppLanguage.en: 'Move to'},
+    'priority': {AppLanguage.ca: 'URGENT', AppLanguage.es: 'URGENTE', AppLanguage.en: 'URGENT'},
     'served': {AppLanguage.ca: 'Servit', AppLanguage.es: 'Servido', AppLanguage.en: 'Served'},
-    'weeklyRevenue': {AppLanguage.ca: 'Ingressos setmanals', AppLanguage.es: 'Ingresos semanales', AppLanguage.en: 'Weekly revenue'},
-    'peakHours': {AppLanguage.ca: 'Hores punta', AppLanguage.es: 'Horas punta', AppLanguage.en: 'Peak hours'},
+    'newOrder': {AppLanguage.ca: 'Nou Pedido', AppLanguage.es: 'Nuevo Pedido', AppLanguage.en: 'New Order'},
+    'free': {AppLanguage.ca: 'Lliure', AppLanguage.es: 'Libre', AppLanguage.en: 'Free'},
+    'seated': {AppLanguage.ca: 'Ocupada', AppLanguage.es: 'Ocupada', AppLanguage.en: 'Seated'},
+    'serving': {AppLanguage.ca: 'Servint', AppLanguage.es: 'Sirviendo', AppLanguage.en: 'Serving'},
+    'paying': {AppLanguage.ca: 'Pagant', AppLanguage.es: 'Pagando', AppLanguage.en: 'Paying'},
+    'cleaning': {AppLanguage.ca: 'Netejant', AppLanguage.es: 'Limpiando', AppLanguage.en: 'Cleaning'},
+    'entrance': {AppLanguage.ca: 'Entrada', AppLanguage.es: 'Entrada', AppLanguage.en: 'Entrance'},
     'restaurantName': {AppLanguage.ca: 'Nom del restaurant', AppLanguage.es: 'Nombre del restaurante', AppLanguage.en: 'Restaurant name'},
-    'uploadLogo': {AppLanguage.ca: 'Pujar logotip', AppLanguage.es: 'Subir logotipo', AppLanguage.en: 'Upload logo'},
-    'general': {AppLanguage.ca: 'General', AppLanguage.es: 'General', AppLanguage.en: 'General'},
     'language': {AppLanguage.ca: 'Idioma', AppLanguage.es: 'Idioma', AppLanguage.en: 'Language'},
-    'appearance': {AppLanguage.ca: 'Aparenca', AppLanguage.es: 'Apariencia', AppLanguage.en: 'Appearance'},
-    'totalOrders': {AppLanguage.ca: 'Total comandes', AppLanguage.es: 'Total pedidos', AppLanguage.en: 'Total orders'},
-    'avgTableTime': {AppLanguage.ca: 'Temps mitja taula', AppLanguage.es: 'Tiempo medio mesa', AppLanguage.en: 'Avg. table time'},
+    'general': {AppLanguage.ca: 'General', AppLanguage.es: 'General', AppLanguage.en: 'General'},
+    'products': {AppLanguage.ca: 'Productes', AppLanguage.es: 'Productos', AppLanguage.en: 'Products'},
+    'createProduct': {AppLanguage.ca: 'Crear producte', AppLanguage.es: 'Crear producto', AppLanguage.en: 'Create product'},
+    'addToOrder': {AppLanguage.ca: 'Afegir', AppLanguage.es: 'Anadir', AppLanguage.en: 'Add'},
+    'send': {AppLanguage.ca: 'Enviar', AppLanguage.es: 'Enviar', AppLanguage.en: 'Send'},
+    'cancel': {AppLanguage.ca: 'CancelÂ·lar', AppLanguage.es: 'Cancelar', AppLanguage.en: 'Cancel'},
+    'ticket': {AppLanguage.ca: 'Tiquet', AppLanguage.es: 'Ticket', AppLanguage.en: 'Ticket'},
+    'note': {AppLanguage.ca: 'Nota', AppLanguage.es: 'Nota', AppLanguage.en: 'Note'},
+    'total': {AppLanguage.ca: 'Total', AppLanguage.es: 'Total', AppLanguage.en: 'Total'},
+    'selectTable': {AppLanguage.ca: 'Seleccionar taula', AppLanguage.es: 'Seleccionar mesa', AppLanguage.en: 'Select table'},
   };
   static String t(AppLanguage l, String k) => _v[k]?[l] ?? _v[k]?[AppLanguage.en] ?? k;
 }
 
-class LocalizedCopy {
-  const LocalizedCopy({required this.ca, required this.es, required this.en});
-  final String ca, es, en;
-  String text(AppLanguage l) { switch (l) { case AppLanguage.ca: return ca; case AppLanguage.es: return es; case AppLanguage.en: return en; } }
-}
-
+// === DATA MODELS ===
 enum OrderStage { fresh, cooking, ready }
 enum TableShape { square, round }
-enum TableMood { seated, flowing, waiting, critical }
+enum FloorStatus { free, seated, serving, paying, cleaning }
 
-class KpiMetric {
-  const KpiMetric({required this.labelKey, required this.value, required this.delta, required this.captionKey, required this.positive, required this.icon, required this.accent, required this.accentBg});
-  final String labelKey, value, delta, captionKey; final bool positive; final IconData icon; final Color accent, accentBg;
-}
+class KpiMetric { const KpiMetric({required this.labelKey, required this.value, required this.delta, required this.captionKey, required this.positive, required this.icon, required this.accent, required this.accentBg}); final String labelKey, value, delta, captionKey; final bool positive; final IconData icon; final Color accent, accentBg; }
 
 class FloorTable {
-  const FloorTable({required this.number, required this.seats, required this.mood, required this.shape, required this.waitMinutes});
-  final int number, seats, waitMinutes; final TableMood mood; final TableShape shape;
+  FloorTable({required this.number, required this.seats, required this.shape, this.status = FloorStatus.free});
+  final int number, seats; final TableShape shape; FloorStatus status;
 }
 
-class OrderLine {
-  const OrderLine({required this.quantity, required this.name});
-  final int quantity; final LocalizedCopy name;
-}
+class OrderLine { const OrderLine({required this.qty, required this.name, required this.price, this.note}); final int qty; final String name; final double price; final String? note; }
 
 class LiveOrder {
-  const LiveOrder({required this.id, required this.tableNumber, required this.guests, required this.lines, required this.total, required this.elapsedMinutes, required this.stage, this.priority = false});
-  final String id; final int tableNumber, guests, elapsedMinutes; final List<OrderLine> lines; final double total; final OrderStage stage; final bool priority;
-  LiveOrder copyWith({OrderStage? stage, int? elapsedMinutes}) => LiveOrder(id: id, tableNumber: tableNumber, guests: guests, lines: lines, total: total, elapsedMinutes: elapsedMinutes ?? this.elapsedMinutes, stage: stage ?? this.stage, priority: priority);
+  LiveOrder({required this.id, required this.tableNumber, required this.guests, required this.lines, required this.elapsedMinutes, required this.stage, this.priority = false, this.note});
+  final String id; final int tableNumber, guests, elapsedMinutes; final List<OrderLine> lines; final OrderStage stage; final bool priority; final String? note;
+  double get total => lines.fold(0.0, (s, l) => s + l.qty * l.price);
+  LiveOrder copyWith({OrderStage? stage}) => LiveOrder(id: id, tableNumber: tableNumber, guests: guests, lines: lines, elapsedMinutes: elapsedMinutes, stage: stage ?? this.stage, priority: priority, note: note);
 }
 
-String formatCurrency(double v, AppLanguage l) {
-  final f = v.toStringAsFixed(2).split('.'); final sep = l == AppLanguage.en ? ',' : '.'; final dec = l == AppLanguage.en ? '.' : ',';
+class MenuProduct { const MenuProduct({required this.name, required this.price, required this.category}); final String name; final double price; final String category; }
+
+String fmtCur(double v, AppLanguage l) {
+  final f = v.toStringAsFixed(2).split('.'); final s = l == AppLanguage.en ? ',' : '.'; final d = l == AppLanguage.en ? '.' : ',';
   final c = f.first.split('').reversed.toList(); final b = StringBuffer();
-  for (var i = 0; i < c.length; i++) { if (i > 0 && i % 3 == 0) b.write(sep); b.write(c[i]); }
-  return '${b.toString().split('').reversed.join()}$dec${f.last} EUR';
+  for (var i = 0; i < c.length; i++) { if (i > 0 && i % 3 == 0) b.write(s); b.write(c[i]); }
+  return '${b.toString().split('').reversed.join()}$d${f.last} â‚¬';
 }
-String stageLabel(AppLanguage l, OrderStage s) { switch (s) { case OrderStage.fresh: return L10n.t(l, 'stageNew'); case OrderStage.cooking: return L10n.t(l, 'stageCooking'); case OrderStage.ready: return L10n.t(l, 'stageReady'); } }
-Color stageColor(OrderStage s) { switch (s) { case OrderStage.fresh: return Nx.primary; case OrderStage.cooking: return Nx.warning; case OrderStage.ready: return Nx.success; } }
-Color stageBg(OrderStage s) { switch (s) { case OrderStage.fresh: return Nx.primaryBg; case OrderStage.cooking: return Nx.warningBg; case OrderStage.ready: return Nx.successBg; } }
-String moodLabel(AppLanguage l, TableMood m) { switch (m) { case TableMood.seated: return L10n.t(l, 'statusSeated'); case TableMood.flowing: return L10n.t(l, 'statusFlowing'); case TableMood.waiting: return L10n.t(l, 'statusWaiting'); case TableMood.critical: return L10n.t(l, 'statusCritical'); } }
-Color moodColor(TableMood m) { switch (m) { case TableMood.seated: return Nx.primary; case TableMood.flowing: return Nx.success; case TableMood.waiting: return Nx.warning; case TableMood.critical: return Nx.danger; } }
-Color moodBg(TableMood m) { switch (m) { case TableMood.seated: return Nx.primaryBg; case TableMood.flowing: return Nx.successBg; case TableMood.waiting: return Nx.warningBg; case TableMood.critical: return Nx.dangerBg; } }
+String stageLbl(AppLanguage l, OrderStage s) { switch (s) { case OrderStage.fresh: return T.t(l, 'stageNew'); case OrderStage.cooking: return T.t(l, 'stageCooking'); case OrderStage.ready: return T.t(l, 'stageReady'); } }
+Color stageCol(OrderStage s) { switch (s) { case OrderStage.fresh: return C.navy; case OrderStage.cooking: return C.amber; case OrderStage.ready: return C.forest; } }
+Color stageBg(OrderStage s) { switch (s) { case OrderStage.fresh: return C.navyBg; case OrderStage.cooking: return C.amberBg; case OrderStage.ready: return C.forestBg; } }
+String statusLbl(AppLanguage l, FloorStatus s) { switch (s) { case FloorStatus.free: return T.t(l, 'free'); case FloorStatus.seated: return T.t(l, 'seated'); case FloorStatus.serving: return T.t(l, 'serving'); case FloorStatus.paying: return T.t(l, 'paying'); case FloorStatus.cleaning: return T.t(l, 'cleaning'); } }
+Color statusCol(FloorStatus s) { switch (s) { case FloorStatus.free: return C.forest; case FloorStatus.seated: return C.navy; case FloorStatus.serving: return C.amber; case FloorStatus.paying: return C.burg; case FloorStatus.cleaning: return C.grey; } }
+Color statusBg(FloorStatus s) { switch (s) { case FloorStatus.free: return C.forestBg; case FloorStatus.seated: return C.navyBg; case FloorStatus.serving: return C.amberBg; case FloorStatus.paying: return C.burgBg; case FloorStatus.cleaning: return C.greyBg; } }
 
-class MockData {
-  static List<KpiMetric> metrics(AppLanguage l) => [
-    KpiMetric(labelKey: 'revenueToday', value: formatCurrency(1452.80, l), delta: '+12.4%', captionKey: 'vsYesterday', positive: true, icon: Icons.trending_up_rounded, accent: Nx.success, accentBg: Nx.successBg),
-    KpiMetric(labelKey: 'averageTicket', value: formatCurrency(38.70, l), delta: '+3.1%', captionKey: 'vsYesterday', positive: true, icon: Icons.receipt_long_rounded, accent: Nx.info, accentBg: Nx.infoBg),
-    const KpiMetric(labelKey: 'activeTables', value: '18 / 24', delta: '+4', captionKey: 'coverage', positive: true, icon: Icons.table_restaurant_rounded, accent: Nx.primary, accentBg: Nx.primaryBg),
-    const KpiMetric(labelKey: 'averageWait', value: '11 min', delta: '-2 min', captionKey: 'lowerIsBetter', positive: true, icon: Icons.timer_outlined, accent: Nx.warning, accentBg: Nx.warningBg),
-  ];
+// === MOCK DATA ===
+List<FloorTable> createTables() => [
+  FloorTable(number: 1, seats: 2, shape: TableShape.round, status: FloorStatus.seated),
+  FloorTable(number: 2, seats: 4, shape: TableShape.square, status: FloorStatus.free),
+  FloorTable(number: 3, seats: 4, shape: TableShape.square, status: FloorStatus.serving),
+  FloorTable(number: 4, seats: 2, shape: TableShape.round, status: FloorStatus.paying),
+  FloorTable(number: 5, seats: 6, shape: TableShape.square, status: FloorStatus.seated),
+  FloorTable(number: 6, seats: 2, shape: TableShape.round, status: FloorStatus.free),
+  FloorTable(number: 7, seats: 4, shape: TableShape.square, status: FloorStatus.cleaning),
+  FloorTable(number: 8, seats: 8, shape: TableShape.square, status: FloorStatus.seated),
+  FloorTable(number: 9, seats: 4, shape: TableShape.round, status: FloorStatus.free),
+  FloorTable(number: 10, seats: 2, shape: TableShape.round, status: FloorStatus.serving),
+  FloorTable(number: 11, seats: 6, shape: TableShape.square, status: FloorStatus.seated),
+  FloorTable(number: 12, seats: 4, shape: TableShape.square, status: FloorStatus.free),
+  FloorTable(number: 13, seats: 2, shape: TableShape.round, status: FloorStatus.free),
+  FloorTable(number: 14, seats: 4, shape: TableShape.square, status: FloorStatus.paying),
+  FloorTable(number: 15, seats: 4, shape: TableShape.square, status: FloorStatus.free),
+  FloorTable(number: 16, seats: 6, shape: TableShape.round, status: FloorStatus.seated),
+  FloorTable(number: 17, seats: 2, shape: TableShape.round, status: FloorStatus.free),
+  FloorTable(number: 18, seats: 4, shape: TableShape.square, status: FloorStatus.serving),
+  FloorTable(number: 19, seats: 8, shape: TableShape.square, status: FloorStatus.free),
+  FloorTable(number: 20, seats: 2, shape: TableShape.round, status: FloorStatus.cleaning),
+];
 
-  static List<FloorTable> tables() => const [
-    FloorTable(number: 1, seats: 2, mood: TableMood.flowing, shape: TableShape.round, waitMinutes: 8),
-    FloorTable(number: 2, seats: 4, mood: TableMood.seated, shape: TableShape.square, waitMinutes: 3),
-    FloorTable(number: 3, seats: 4, mood: TableMood.flowing, shape: TableShape.square, waitMinutes: 10),
-    FloorTable(number: 4, seats: 2, mood: TableMood.waiting, shape: TableShape.round, waitMinutes: 18),
-    FloorTable(number: 5, seats: 6, mood: TableMood.critical, shape: TableShape.square, waitMinutes: 24),
-    FloorTable(number: 6, seats: 2, mood: TableMood.flowing, shape: TableShape.round, waitMinutes: 7),
-    FloorTable(number: 7, seats: 4, mood: TableMood.seated, shape: TableShape.square, waitMinutes: 4),
-    FloorTable(number: 8, seats: 8, mood: TableMood.flowing, shape: TableShape.square, waitMinutes: 13),
-    FloorTable(number: 9, seats: 4, mood: TableMood.waiting, shape: TableShape.round, waitMinutes: 21),
-    FloorTable(number: 10, seats: 2, mood: TableMood.flowing, shape: TableShape.round, waitMinutes: 9),
-    FloorTable(number: 11, seats: 6, mood: TableMood.critical, shape: TableShape.square, waitMinutes: 27),
-    FloorTable(number: 12, seats: 4, mood: TableMood.flowing, shape: TableShape.square, waitMinutes: 12),
-    FloorTable(number: 13, seats: 2, mood: TableMood.seated, shape: TableShape.round, waitMinutes: 2),
-    FloorTable(number: 14, seats: 4, mood: TableMood.flowing, shape: TableShape.square, waitMinutes: 14),
-    FloorTable(number: 15, seats: 4, mood: TableMood.waiting, shape: TableShape.square, waitMinutes: 19),
-    FloorTable(number: 16, seats: 6, mood: TableMood.flowing, shape: TableShape.round, waitMinutes: 11),
-    FloorTable(number: 17, seats: 2, mood: TableMood.seated, shape: TableShape.round, waitMinutes: 5),
-    FloorTable(number: 18, seats: 4, mood: TableMood.critical, shape: TableShape.square, waitMinutes: 31),
-    FloorTable(number: 19, seats: 8, mood: TableMood.flowing, shape: TableShape.square, waitMinutes: 15),
-    FloorTable(number: 20, seats: 2, mood: TableMood.flowing, shape: TableShape.round, waitMinutes: 6),
-    FloorTable(number: 21, seats: 4, mood: TableMood.waiting, shape: TableShape.square, waitMinutes: 22),
-    FloorTable(number: 22, seats: 6, mood: TableMood.flowing, shape: TableShape.round, waitMinutes: 12),
-    FloorTable(number: 23, seats: 4, mood: TableMood.seated, shape: TableShape.square, waitMinutes: 1),
-    FloorTable(number: 24, seats: 2, mood: TableMood.flowing, shape: TableShape.round, waitMinutes: 9),
-  ];
+List<LiveOrder> createOrders() => [
+  LiveOrder(id: 'N-1048', tableNumber: 4, guests: 2, elapsedMinutes: 4, stage: OrderStage.fresh, priority: true, note: 'Alergia al gluten', lines: [
+    const OrderLine(qty: 2, name: 'Burger trufada', price: 14.50), const OrderLine(qty: 1, name: 'Patatas bravas', price: 6.50), const OrderLine(qty: 2, name: 'IPA artesanal', price: 5.80)]),
+  LiveOrder(id: 'N-1049', tableNumber: 11, guests: 6, elapsedMinutes: 9, stage: OrderStage.fresh, lines: [
+    const OrderLine(qty: 3, name: 'Tacos cochinita', price: 12.00), const OrderLine(qty: 2, name: 'Ensalada burrata', price: 11.50), const OrderLine(qty: 1, name: 'Ribeye 400g', price: 28.00)]),
+  LiveOrder(id: 'N-1050', tableNumber: 2, guests: 4, elapsedMinutes: 12, stage: OrderStage.cooking, note: 'Sin cebolla mesa entera', lines: [
+    const OrderLine(qty: 2, name: 'Risotto setas', price: 15.00), const OrderLine(qty: 1, name: 'Pulpo brasa', price: 18.50), const OrderLine(qty: 2, name: 'Limonada romero', price: 4.50)]),
+  LiveOrder(id: 'N-1051', tableNumber: 9, guests: 4, elapsedMinutes: 18, stage: OrderStage.cooking, priority: true, lines: [
+    const OrderLine(qty: 1, name: 'Arroz meloso gamba', price: 19.00), const OrderLine(qty: 2, name: 'Croquetas jamon', price: 9.50, note: 'Extra salsa'), const OrderLine(qty: 1, name: 'Tarta manzana', price: 7.50)]),
+  LiveOrder(id: 'N-1052', tableNumber: 16, guests: 6, elapsedMinutes: 15, stage: OrderStage.cooking, lines: [
+    const OrderLine(qty: 2, name: 'Pescado del dia', price: 22.00), const OrderLine(qty: 2, name: 'Steak tartar', price: 17.50), const OrderLine(qty: 1, name: 'Verduras asadas', price: 9.00)]),
+  LiveOrder(id: 'N-1053', tableNumber: 7, guests: 4, elapsedMinutes: 21, stage: OrderStage.ready, lines: [
+    const OrderLine(qty: 2, name: 'Canelones rustido', price: 13.00), const OrderLine(qty: 1, name: 'Brioche costilla', price: 14.50), const OrderLine(qty: 2, name: 'Cafe frio', price: 3.50)]),
+  LiveOrder(id: 'N-1054', tableNumber: 18, guests: 4, elapsedMinutes: 24, stage: OrderStage.ready, priority: true, note: 'Cumpleanos - postre con vela', lines: [
+    const OrderLine(qty: 1, name: 'Lubina a la sal', price: 26.00), const OrderLine(qty: 2, name: 'Alcachofas confitadas', price: 11.00), const OrderLine(qty: 2, name: 'Cava brut', price: 6.50)]),
+];
 
-  static List<LiveOrder> orders() => const [
-    LiveOrder(id: 'N-1048', tableNumber: 4, guests: 2, elapsedMinutes: 4, total: 42.50, stage: OrderStage.fresh, priority: true, lines: [
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Burger trufada', es: 'Burger trufada', en: 'Truffled burger')),
-      OrderLine(quantity: 1, name: LocalizedCopy(ca: 'Patates braves', es: 'Patatas bravas', en: 'Patatas bravas')),
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'IPA artesanal', es: 'IPA artesanal', en: 'Craft IPA')),
-    ]),
-    LiveOrder(id: 'N-1049', tableNumber: 11, guests: 6, elapsedMinutes: 9, total: 96.40, stage: OrderStage.fresh, lines: [
-      OrderLine(quantity: 3, name: LocalizedCopy(ca: 'Tacos de cochinita', es: 'Tacos de cochinita', en: 'Cochinita tacos')),
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Amanida de burrata', es: 'Ensalada de burrata', en: 'Burrata salad')),
-      OrderLine(quantity: 1, name: LocalizedCopy(ca: 'Ribeye 400g', es: 'Ribeye 400g', en: 'Ribeye 400g')),
-    ]),
-    LiveOrder(id: 'N-1050', tableNumber: 2, guests: 4, elapsedMinutes: 12, total: 68.20, stage: OrderStage.cooking, lines: [
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Risotto de ceps', es: 'Risotto de setas', en: 'Mushroom risotto')),
-      OrderLine(quantity: 1, name: LocalizedCopy(ca: 'Pop a la brasa', es: 'Pulpo a la brasa', en: 'Charred octopus')),
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Llimonada de romani', es: 'Limonada de romero', en: 'Rosemary lemonade')),
-    ]),
-    LiveOrder(id: 'N-1051', tableNumber: 9, guests: 4, elapsedMinutes: 18, total: 74.90, stage: OrderStage.cooking, priority: true, lines: [
-      OrderLine(quantity: 1, name: LocalizedCopy(ca: 'Arros melos de gamba', es: 'Arroz meloso de gamba', en: 'Prawn creamy rice')),
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Croquetes de pernil', es: 'Croquetas de jamon', en: 'Ham croquettes')),
-      OrderLine(quantity: 1, name: LocalizedCopy(ca: 'Tarta fina de poma', es: 'Tarta fina de manzana', en: 'Apple tart')),
-    ]),
-    LiveOrder(id: 'N-1052', tableNumber: 16, guests: 6, elapsedMinutes: 15, total: 121.10, stage: OrderStage.cooking, lines: [
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Peix del dia', es: 'Pescado del dia', en: 'Catch of the day')),
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Steak tartar', es: 'Steak tartar', en: 'Steak tartare')),
-      OrderLine(quantity: 1, name: LocalizedCopy(ca: 'Verdures escalivades', es: 'Verduras asadas', en: 'Roasted vegetables')),
-    ]),
-    LiveOrder(id: 'N-1053', tableNumber: 7, guests: 4, elapsedMinutes: 21, total: 55.30, stage: OrderStage.ready, lines: [
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Canelons de rostit', es: 'Canelones de rustido', en: 'Roast cannelloni')),
-      OrderLine(quantity: 1, name: LocalizedCopy(ca: 'Brioix de costella', es: 'Brioche de costilla', en: 'Short rib brioche')),
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Cafe fred', es: 'Cafe frio', en: 'Cold brew')),
-    ]),
-    LiveOrder(id: 'N-1054', tableNumber: 18, guests: 4, elapsedMinutes: 24, total: 88.60, stage: OrderStage.ready, priority: true, lines: [
-      OrderLine(quantity: 1, name: LocalizedCopy(ca: 'Llobarro a la sal', es: 'Lubina a la sal', en: 'Salt baked sea bass')),
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Carxofes confitades', es: 'Alcachofas confitadas', en: 'Confit artichokes')),
-      OrderLine(quantity: 2, name: LocalizedCopy(ca: 'Copa de cava brut', es: 'Copa de cava brut', en: 'Brut cava glass')),
-    ]),
-  ];
+const menuProducts = [
+  MenuProduct(name: 'Agua mineral', price: 2.50, category: 'Bebidas'), MenuProduct(name: 'Coca-Cola', price: 3.00, category: 'Bebidas'),
+  MenuProduct(name: 'Copa vino tinto', price: 5.50, category: 'Bebidas'), MenuProduct(name: 'Copa vino blanco', price: 5.50, category: 'Bebidas'),
+  MenuProduct(name: 'Cerveza artesanal', price: 5.80, category: 'Bebidas'), MenuProduct(name: 'Limonada romero', price: 4.50, category: 'Bebidas'),
+  MenuProduct(name: 'Cafe solo', price: 1.80, category: 'Bebidas'), MenuProduct(name: 'Cafe con leche', price: 2.20, category: 'Bebidas'),
+  MenuProduct(name: 'Patatas bravas', price: 6.50, category: 'Entrantes'), MenuProduct(name: 'Croquetas jamon', price: 9.50, category: 'Entrantes'),
+  MenuProduct(name: 'Ensalada burrata', price: 11.50, category: 'Entrantes'), MenuProduct(name: 'Gazpacho', price: 7.00, category: 'Entrantes'),
+  MenuProduct(name: 'Pan con tomate', price: 4.00, category: 'Entrantes'), MenuProduct(name: 'Pulpo brasa', price: 18.50, category: 'Entrantes'),
+  MenuProduct(name: 'Risotto setas', price: 15.00, category: 'Primeros'), MenuProduct(name: 'Arroz meloso gamba', price: 19.00, category: 'Primeros'),
+  MenuProduct(name: 'Canelones rustido', price: 13.00, category: 'Primeros'), MenuProduct(name: 'Sopa de cebolla', price: 8.50, category: 'Primeros'),
+  MenuProduct(name: 'Burger trufada', price: 14.50, category: 'Segundos'), MenuProduct(name: 'Ribeye 400g', price: 28.00, category: 'Segundos'),
+  MenuProduct(name: 'Lubina a la sal', price: 26.00, category: 'Segundos'), MenuProduct(name: 'Pescado del dia', price: 22.00, category: 'Segundos'),
+  MenuProduct(name: 'Steak tartar', price: 17.50, category: 'Segundos'), MenuProduct(name: 'Pollo de corral', price: 16.00, category: 'Segundos'),
+  MenuProduct(name: 'Tarta manzana', price: 7.50, category: 'Postres'), MenuProduct(name: 'Crema catalana', price: 6.50, category: 'Postres'),
+  MenuProduct(name: 'Coulant chocolate', price: 8.00, category: 'Postres'), MenuProduct(name: 'Sorbete limon', price: 5.00, category: 'Postres'),
+];
+final menuCategories = menuProducts.map((p) => p.category).toSet().toList();
+
+
+// === MAIN SHELL & NAVIGATION ===
+class MainShell extends StatefulWidget {
+  const MainShell({required this.ctrl, super.key});
+  final AppController ctrl;
+  @override State<MainShell> createState() => _MainShellState();
 }
-
-
-// === SCREENS ===
-class LiveViewScreen extends StatefulWidget {
-  const LiveViewScreen({required this.controller, super.key});
-  final AppController controller;
-  @override State<LiveViewScreen> createState() => _LiveViewScreenState();
-}
-class _LiveViewScreenState extends State<LiveViewScreen> {
+class _MainShellState extends State<MainShell> {
   late List<LiveOrder> _orders;
-  int _navIndex = 0;
-  @override void initState() { super.initState(); _orders = MockData.orders(); }
-  void _moveOrder(LiveOrder order, OrderStage stage) {
-    setState(() { final i = _orders.indexWhere((o) => o.id == order.id); if (i == -1) return; _orders[i] = _orders[i].copyWith(stage: stage); });
-  }
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(animation: widget.controller, builder: (context, _) {
-      final lang = widget.controller.language;
-      return LayoutBuilder(builder: (context, constraints) {
-        final compact = constraints.maxWidth < 780;
-        return Scaffold(backgroundColor: Nx.bg,
-          bottomNavigationBar: compact ? NxBottomNav(index: _navIndex, lang: lang, onTap: (v) => setState(() => _navIndex = v)) : null,
-          body: Column(children: [
-            const _TitleBar(),
-            Expanded(child: SafeArea(bottom: !compact, child: Row(children: [
-              if (!compact) NxRail(index: _navIndex, lang: lang, onTap: (v) => setState(() => _navIndex = v)),
-              Expanded(child: Column(children: [
-                NxTopBar(controller: widget.controller),
-                Expanded(child: IndexedStack(index: _navIndex, children: [
-                  _LiveScreen(lang: lang, orders: _orders, onMove: _moveOrder),
-                  _FloorScreen(lang: lang),
-                  _KitchenScreen(lang: lang, orders: _orders, onMove: _moveOrder),
-                  _InsightsScreen(lang: lang),
-                  _SettingsScreen(controller: widget.controller),
-                ])),
+  late List<FloorTable> _tables;
+  int _nav = 0;
+  bool _showPOS = false;
+
+  @override void initState() { super.initState(); _orders = createOrders(); _tables = createTables(); }
+
+  void _moveOrder(LiveOrder o, OrderStage s) { setState(() { final i = _orders.indexWhere((x) => x.id == o.id); if (i != -1) _orders[i] = _orders[i].copyWith(stage: s); }); }
+  void _changeTableStatus(int idx, FloorStatus s) { setState(() => _tables[idx].status = s); }
+  void _addOrder(LiveOrder o) { setState(() => _orders.add(o)); }
+
+  @override Widget build(BuildContext context) {
+    return AnimatedBuilder(animation: widget.ctrl, builder: (ctx, _) {
+      final l = widget.ctrl.language;
+      return Stack(children: [
+        Scaffold(backgroundColor: C.bg, body: Column(children: [
+          if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) const SizedBox(height: 32, child: WindowCaption(brightness: Brightness.light, backgroundColor: Colors.transparent)),
+          Expanded(child: Row(children: [
+            _Rail(nav: _nav, lang: l, onTap: (v) => setState(() => _nav = v)),
+            Container(width: 1, color: C.border),
+            Expanded(child: Column(children: [
+              _TopBar(ctrl: widget.ctrl, onNewOrder: () => setState(() => _showPOS = true)),
+              Container(height: 1, color: C.border),
+              Expanded(child: IndexedStack(index: _nav, children: [
+                _LiveScreen(l: l, orders: _orders, onMove: _moveOrder),
+                _FloorScreen(l: l, tables: _tables, onStatus: _changeTableStatus),
+                _KitchenScreen(l: l, orders: _orders, onMove: _moveOrder),
+                _ProductsScreen(l: l),
+                _SettingsScreen(ctrl: widget.ctrl),
               ])),
-            ]))),
-          ]),
-        );
-      });
+            ])),
+          ])),
+        ])),
+        if (_showPOS) _POSWizard(l: l, tables: _tables, onClose: () => setState(() => _showPOS = false), onSend: (o) { _addOrder(o); setState(() => _showPOS = false); }),
+      ]);
     });
   }
 }
 
-class _TitleBar extends StatelessWidget {
-  const _TitleBar();
+class _Rail extends StatelessWidget {
+  const _Rail({required this.nav, required this.lang, required this.onTap});
+  final int nav; final AppLanguage lang; final ValueChanged<int> onTap;
   @override Widget build(BuildContext context) {
-    if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) return const SizedBox.shrink();
-    return const SizedBox(height: 32, child: WindowCaption(brightness: Brightness.light, backgroundColor: Colors.transparent));
-  }
-}
-
-class NxTopBar extends StatelessWidget {
-  const NxTopBar({required this.controller, super.key});
-  final AppController controller;
-  @override Widget build(BuildContext context) {
-    final lang = controller.language;
-    return Container(height: 64, padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: const BoxDecoration(color: Nx.surface, border: Border(bottom: BorderSide(color: Nx.border))),
-      child: Row(children: [
-        Container(width: 32, height: 32, decoration: BoxDecoration(color: Nx.primary, borderRadius: BorderRadius.circular(8)),
-          child: const Center(child: Text('N', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)))),
-        const SizedBox(width: 10),
-        Text(controller.restaurantName, style: const TextStyle(color: Nx.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
-        const SizedBox(width: 12),
-        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Nx.success, shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Text(L10n.t(lang, 'synced'), style: const TextStyle(color: Nx.textMuted, fontSize: 11, fontWeight: FontWeight.w500)),
-        const Spacer(),
-        _LangSwitch(lang: lang, onChanged: controller.setLanguage),
-      ]),
-    );
-  }
-}
-
-class _LangSwitch extends StatelessWidget {
-  const _LangSwitch({required this.lang, required this.onChanged});
-  final AppLanguage lang; final ValueChanged<AppLanguage> onChanged;
-  @override Widget build(BuildContext context) {
-    return Container(padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: Nx.surfaceAlt, borderRadius: BorderRadius.circular(8), border: Border.all(color: Nx.border)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: AppLanguage.values.map((item) {
-        final sel = item == lang;
-        return InkWell(borderRadius: BorderRadius.circular(6), onTap: () => onChanged(item),
-          child: Container(width: 38, height: 28, alignment: Alignment.center,
-            decoration: BoxDecoration(color: sel ? Nx.surface : Colors.transparent, borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: sel ? Nx.border : Colors.transparent),
-              boxShadow: sel ? [const BoxShadow(color: Nx.shadow, blurRadius: 2, offset: Offset(0, 1))] : null),
-            child: Text(item.code, style: TextStyle(color: sel ? Nx.textPrimary : Nx.textMuted, fontWeight: FontWeight.w700, fontSize: 11))));
-      }).toList()));
-  }
-}
-
-class NxRail extends StatelessWidget {
-  const NxRail({required this.index, required this.lang, required this.onTap, super.key});
-  final int index; final AppLanguage lang; final ValueChanged<int> onTap;
-  @override Widget build(BuildContext context) {
-    final items = [
-      (Icons.space_dashboard_outlined, 'navLive'),
-      (Icons.grid_view_rounded, 'navFloor'),
-      (Icons.restaurant_outlined, 'navKitchen'),
-      (Icons.insights_outlined, 'navInsights'),
-      (Icons.settings_outlined, 'navSettings'),
-    ];
-    return Container(width: 80, padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(color: Nx.surface, border: Border(right: BorderSide(color: Nx.border))),
+    final items = [(Icons.dashboard_outlined, 'navLive'), (Icons.map_outlined, 'navFloor'), (Icons.restaurant_outlined, 'navKitchen'), (Icons.inventory_2_outlined, 'navProducts'), (Icons.settings_outlined, 'navSettings')];
+    return Container(width: 76, color: C.surface, padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(children: [
         for (var i = 0; i < items.length; i++) ...[
-          _RailBtn(icon: items[i].$1, label: L10n.t(lang, items[i].$2), sel: index == i, onTap: () => onTap(i)),
-          if (i < items.length - 1) const SizedBox(height: 4),
-          if (i == 3) const Spacer(),
-        ],
-      ]));
+          _RailBtn(icon: items[i].$1, label: T.t(lang, items[i].$2), sel: nav == i, onTap: () => onTap(i)),
+          if (i < items.length - 1) const SizedBox(height: 2),
+          if (i == 2) const Spacer(),
+        ]]));
   }
 }
 
@@ -374,436 +294,534 @@ class _RailBtn extends StatelessWidget {
   const _RailBtn({required this.icon, required this.label, required this.sel, required this.onTap});
   final IconData icon; final String label; final bool sel; final VoidCallback onTap;
   @override Widget build(BuildContext context) {
-    return InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap,
-      child: Container(width: 64, padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(color: sel ? Nx.primaryBg : Colors.transparent, borderRadius: BorderRadius.circular(10)),
+    return InkWell(borderRadius: BorderRadius.circular(8), onTap: onTap,
+      child: Container(width: 64, padding: const EdgeInsets.symmetric(vertical: 7),
+        decoration: BoxDecoration(color: sel ? C.burgBg : Colors.transparent, borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: sel ? C.burg.withValues(alpha: 0.25) : Colors.transparent)),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 20, color: sel ? Nx.primary : Nx.textMuted),
-          const SizedBox(height: 4),
-          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: sel ? Nx.primary : Nx.textMuted, fontSize: 10, fontWeight: FontWeight.w600)),
-        ])));
-  }
-}
-
-class NxBottomNav extends StatelessWidget {
-  const NxBottomNav({required this.index, required this.lang, required this.onTap, super.key});
-  final int index; final AppLanguage lang; final ValueChanged<int> onTap;
-  @override Widget build(BuildContext context) {
-    final items = [(Icons.space_dashboard_outlined, 'navLive'), (Icons.grid_view_rounded, 'navFloor'),
-      (Icons.restaurant_outlined, 'navKitchen'), (Icons.insights_outlined, 'navInsights'), (Icons.settings_outlined, 'navSettings')];
-    return SafeArea(top: false, child: Container(height: 64,
-      decoration: const BoxDecoration(color: Nx.surface, border: Border(top: BorderSide(color: Nx.border))),
-      child: Row(children: [for (var i = 0; i < items.length; i++)
-        Expanded(child: InkWell(onTap: () => onTap(i), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(items[i].$1, size: 20, color: index == i ? Nx.primary : Nx.textMuted),
+          Icon(icon, size: 20, color: sel ? C.burg : C.textMut),
           const SizedBox(height: 3),
-          Text(L10n.t(lang, items[i].$2), style: TextStyle(color: index == i ? Nx.primary : Nx.textMuted, fontSize: 9, fontWeight: FontWeight.w600)),
-        ])))])));
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: sel ? C.burg : C.textMut, fontSize: 9.5, fontWeight: FontWeight.w600))])));
   }
 }
 
-
-// === SCREEN IMPLEMENTATIONS ===
-class _LiveScreen extends StatelessWidget {
-  const _LiveScreen({required this.lang, required this.orders, required this.onMove});
-  final AppLanguage lang; final List<LiveOrder> orders; final void Function(LiveOrder, OrderStage) onMove;
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.ctrl, required this.onNewOrder});
+  final AppController ctrl; final VoidCallback onNewOrder;
   @override Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.all(20), child: Column(children: [
-      KpiStrip(lang: lang), const SizedBox(height: 16),
-      Expanded(child: _Kanban(lang: lang, orders: orders, onMove: onMove)),
+    final l = ctrl.language;
+    return Container(height: 56, color: C.surface, padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: Row(children: [
+        Container(width: 30, height: 30, decoration: BoxDecoration(color: C.burg, borderRadius: BorderRadius.circular(6)),
+          child: const Center(child: Text('N', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)))),
+        const SizedBox(width: 10),
+        Text(ctrl.restaurantName, style: const TextStyle(color: C.text, fontWeight: FontWeight.w700, fontSize: 15)),
+        const SizedBox(width: 10),
+        Container(width: 6, height: 6, decoration: const BoxDecoration(color: C.forest, shape: BoxShape.circle)),
+        const SizedBox(width: 5),
+        Text(T.t(l, 'synced'), style: const TextStyle(color: C.textMut, fontSize: 10, fontWeight: FontWeight.w500)),
+        const Spacer(),
+        _Btn(label: '+ ${T.t(l, 'newOrder')}', color: C.burg, onTap: onNewOrder),
+        const SizedBox(width: 12),
+        _LangSwitch(lang: l, onChanged: ctrl.setLanguage),
+      ]));
+  }
+}
+
+class _Btn extends StatelessWidget {
+  const _Btn({required this.label, required this.color, required this.onTap});
+  final String label; final Color color; final VoidCallback onTap;
+  @override Widget build(BuildContext context) {
+    return InkWell(borderRadius: BorderRadius.circular(6), onTap: onTap,
+      child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
+        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700))));
+  }
+}
+
+class _LangSwitch extends StatelessWidget {
+  const _LangSwitch({required this.lang, required this.onChanged});
+  final AppLanguage lang; final ValueChanged<AppLanguage> onChanged;
+  @override Widget build(BuildContext context) {
+    return Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: C.warm, borderRadius: BorderRadius.circular(6), border: Border.all(color: C.border)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: AppLanguage.values.map((item) {
+        final sel = item == lang;
+        return InkWell(borderRadius: BorderRadius.circular(4), onTap: () => onChanged(item),
+          child: Container(width: 34, height: 26, alignment: Alignment.center,
+            decoration: BoxDecoration(color: sel ? C.surface : Colors.transparent, borderRadius: BorderRadius.circular(4), border: Border.all(color: sel ? C.border : Colors.transparent)),
+            child: Text(item.code, style: TextStyle(color: sel ? C.text : C.textMut, fontWeight: FontWeight.w700, fontSize: 10))));
+      }).toList()));
+  }
+}
+
+// === LIVE SCREEN ===
+class _LiveScreen extends StatelessWidget {
+  const _LiveScreen({required this.l, required this.orders, required this.onMove});
+  final AppLanguage l; final List<LiveOrder> orders; final void Function(LiveOrder, OrderStage) onMove;
+  @override Widget build(BuildContext context) {
+    return Padding(padding: const EdgeInsets.all(16), child: Column(children: [
+      _KpiStrip(l: l), const SizedBox(height: 12),
+      Expanded(child: _Kanban(l: l, orders: orders, onMove: onMove)),
     ]));
   }
 }
 
-class _FloorScreen extends StatelessWidget {
-  const _FloorScreen({required this.lang});
-  final AppLanguage lang;
+class _KpiStrip extends StatelessWidget {
+  const _KpiStrip({required this.l});
+  final AppLanguage l;
   @override Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.all(20), child: _TableMap(lang: lang, fill: true));
-  }
-}
-
-class _KitchenScreen extends StatelessWidget {
-  const _KitchenScreen({required this.lang, required this.orders, required this.onMove});
-  final AppLanguage lang; final List<LiveOrder> orders; final void Function(LiveOrder, OrderStage) onMove;
-  @override Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.all(20), child: _Kanban(lang: lang, orders: orders, onMove: onMove));
-  }
-}
-
-// === KPI STRIP ===
-class KpiStrip extends StatelessWidget {
-  const KpiStrip({required this.lang, super.key});
-  final AppLanguage lang;
-  @override Widget build(BuildContext context) {
-    final m = MockData.metrics(lang);
+    final m = [
+      KpiMetric(labelKey: 'revenueToday', value: fmtCur(1452.80, l), delta: '+12.4%', captionKey: 'vsYesterday', positive: true, icon: Icons.trending_up, accent: C.forest, accentBg: C.forestBg),
+      KpiMetric(labelKey: 'averageTicket', value: fmtCur(38.70, l), delta: '+3.1%', captionKey: 'vsYesterday', positive: true, icon: Icons.receipt_long, accent: C.burg, accentBg: C.burgBg),
+      const KpiMetric(labelKey: 'activeTables', value: '18 / 24', delta: '+4', captionKey: 'coverage', positive: true, icon: Icons.table_restaurant, accent: C.navy, accentBg: C.navyBg),
+      const KpiMetric(labelKey: 'averageWait', value: '11 min', delta: '-2 min', captionKey: 'improvement', positive: true, icon: Icons.timer_outlined, accent: C.amber, accentBg: C.amberBg),
+    ];
     return Row(children: [for (var i = 0; i < m.length; i++) ...[
-      Expanded(child: _KpiCard(m: m[i], lang: lang)), if (i < m.length - 1) const SizedBox(width: 12)]]);
+      Expanded(child: _KpiCard(m: m[i], l: l)), if (i < m.length - 1) const SizedBox(width: 10)]]);
   }
 }
 
 class _KpiCard extends StatelessWidget {
-  const _KpiCard({required this.m, required this.lang});
-  final KpiMetric m; final AppLanguage lang;
+  const _KpiCard({required this.m, required this.l});
+  final KpiMetric m; final AppLanguage l;
   @override Widget build(BuildContext context) {
-    return Container(padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Nx.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Nx.border),
-        boxShadow: const [BoxShadow(color: Nx.shadow, blurRadius: 4, offset: Offset(0, 2))]),
+    return Container(padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: C.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: C.border)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(width: 36, height: 36, decoration: BoxDecoration(color: m.accentBg, borderRadius: BorderRadius.circular(8)),
-            child: Icon(m.icon, size: 18, color: m.accent)),
-          const SizedBox(width: 10),
-          Expanded(child: Text(L10n.t(lang, m.labelKey), maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Nx.textSecondary, fontSize: 12, fontWeight: FontWeight.w500))),
-        ]),
-        const SizedBox(height: 12),
-        Text(m.value, style: const TextStyle(color: Nx.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
-        Row(children: [
-          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: m.positive ? Nx.successBg : Nx.dangerBg, borderRadius: BorderRadius.circular(99)),
-            child: Text(m.delta, style: TextStyle(color: m.positive ? Nx.success : Nx.danger, fontSize: 11, fontWeight: FontWeight.w700))),
-          const SizedBox(width: 6),
-          Expanded(child: Text(L10n.t(lang, m.captionKey), maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Nx.textMuted, fontSize: 11, fontWeight: FontWeight.w500))),
-        ]),
-      ]));
-  }
-}
-
-// === TABLE MAP ===
-class _TableMap extends StatelessWidget {
-  const _TableMap({required this.lang, this.fill = false});
-  final AppLanguage lang; final bool fill;
-  @override Widget build(BuildContext context) {
-    final tables = MockData.tables();
-    return _Panel(title: L10n.t(lang, 'floorMap'), icon: Icons.grid_view_rounded, expand: fill,
-      child: LayoutBuilder(builder: (context, c) {
-        final cols = c.maxWidth >= 900 ? 8 : c.maxWidth >= 600 ? 6 : 4;
-        return GridView.builder(
-          physics: fill ? const BouncingScrollPhysics() : const NeverScrollableScrollPhysics(),
-          shrinkWrap: !fill, itemCount: tables.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: cols, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1.0),
-          itemBuilder: (_, i) => _TableTile(t: tables[i], lang: lang));
-      }));
-  }
-}
-
-class _TableTile extends StatelessWidget {
-  const _TableTile({required this.t, required this.lang});
-  final FloorTable t; final AppLanguage lang;
-  @override Widget build(BuildContext context) {
-    final c = moodColor(t.mood); final bg = moodBg(t.mood);
-    final round = t.shape == TableShape.round;
-    return Container(padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: bg, shape: round ? BoxShape.circle : BoxShape.rectangle,
-        borderRadius: round ? null : BorderRadius.circular(10), border: Border.all(color: c.withValues(alpha: 0.3))),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
-        Text('${t.number}', style: TextStyle(color: c, fontSize: 18, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 2),
-        Text('${t.seats} ${L10n.t(lang, 'covers')}', maxLines: 1, overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Nx.textSecondary, fontSize: 9, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(color: c.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(99)),
-          child: Text('${t.waitMinutes} min', style: TextStyle(color: c, fontSize: 9, fontWeight: FontWeight.w700))),
-      ]));
-  }
-}
-
-// === KANBAN ===
-class _Kanban extends StatelessWidget {
-  const _Kanban({required this.lang, required this.orders, required this.onMove});
-  final AppLanguage lang; final List<LiveOrder> orders; final void Function(LiveOrder, OrderStage) onMove;
-  @override Widget build(BuildContext context) {
-    return _Panel(title: L10n.t(lang, 'liveOrders'), icon: Icons.receipt_long_rounded, expand: true,
-      child: LayoutBuilder(builder: (context, c) {
-        if (c.maxWidth >= 600) {
-          return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            for (final s in OrderStage.values) ...[
-              Expanded(child: _OrderCol(stage: s, lang: lang, orders: orders.where((o) => o.stage == s).toList(), onMove: onMove)),
-              if (s != OrderStage.values.last) const SizedBox(width: 10),
-            ]]);
-        }
-        return SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          for (final s in OrderStage.values) ...[
-            SizedBox(width: 280, child: _OrderCol(stage: s, lang: lang, orders: orders.where((o) => o.stage == s).toList(), onMove: onMove)),
-            if (s != OrderStage.values.last) const SizedBox(width: 10),
-          ]]));
-      }));
-  }
-}
-
-class _OrderCol extends StatelessWidget {
-  const _OrderCol({required this.stage, required this.lang, required this.orders, required this.onMove});
-  final OrderStage stage; final AppLanguage lang; final List<LiveOrder> orders; final void Function(LiveOrder, OrderStage) onMove;
-  @override Widget build(BuildContext context) {
-    final c = stageColor(stage); final bg = stageBg(stage);
-    return Container(padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: Nx.surfaceAlt, borderRadius: BorderRadius.circular(10), border: Border.all(color: Nx.border)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+          Container(width: 32, height: 32, decoration: BoxDecoration(color: m.accentBg, borderRadius: BorderRadius.circular(6)),
+            child: Icon(m.icon, size: 16, color: m.accent)),
           const SizedBox(width: 8),
-          Expanded(child: Text(stageLabel(lang, stage), style: const TextStyle(color: Nx.textPrimary, fontSize: 14, fontWeight: FontWeight.w700))),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(99)),
-            child: Text('${orders.length}', style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w800))),
+          Expanded(child: Text(T.t(l, m.labelKey), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: C.textSec, fontSize: 11, fontWeight: FontWeight.w500))),
         ]),
         const SizedBox(height: 10),
-        Expanded(child: orders.isEmpty
-          ? Center(child: Text(L10n.t(lang, 'noOrders'), style: const TextStyle(color: Nx.textMuted, fontSize: 12)))
-          : ListView.separated(itemCount: orders.length, separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (_, i) => _OrderCard(order: orders[i], lang: lang, onMove: onMove))),
-      ]));
-  }
-}
-
-class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, required this.lang, required this.onMove});
-  final LiveOrder order; final AppLanguage lang; final void Function(LiveOrder, OrderStage) onMove;
-  OrderStage? get _prev => order.stage == OrderStage.fresh ? null : order.stage == OrderStage.cooking ? OrderStage.fresh : OrderStage.cooking;
-  OrderStage? get _next => order.stage == OrderStage.fresh ? OrderStage.cooking : order.stage == OrderStage.cooking ? OrderStage.ready : null;
-  @override Widget build(BuildContext context) {
-    final c = stageColor(order.stage);
-    return Container(padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Nx.surface, borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: order.priority ? Nx.danger.withValues(alpha: 0.4) : Nx.border),
-        boxShadow: const [BoxShadow(color: Nx.shadow, blurRadius: 3, offset: Offset(0, 1))]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(m.value, style: const TextStyle(color: C.text, fontSize: 20, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 6),
         Row(children: [
-          Expanded(child: Text('${L10n.t(lang, 'table')} ${order.tableNumber}', style: const TextStyle(color: Nx.textPrimary, fontSize: 14, fontWeight: FontWeight.w700))),
-          Text(order.id, style: const TextStyle(color: Nx.textMuted, fontSize: 11, fontWeight: FontWeight.w500)),
-        ]),
-        const SizedBox(height: 4),
-        Text('${order.guests} ${L10n.t(lang, 'guests')}', style: const TextStyle(color: Nx.textSecondary, fontSize: 11)),
-        const SizedBox(height: 8),
-        for (final line in order.lines) Padding(padding: const EdgeInsets.only(bottom: 3),
-          child: Text('${line.quantity}x ${line.name.text(lang)}', style: const TextStyle(color: Nx.textSecondary, fontSize: 12, fontWeight: FontWeight.w500))),
-        const SizedBox(height: 8),
-        Row(children: [
-          Text(formatCurrency(order.total, lang), style: const TextStyle(color: Nx.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
-          const Spacer(),
-          if (order.priority) ...[
-            Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Nx.dangerBg, borderRadius: BorderRadius.circular(99)),
-              child: Text(L10n.t(lang, 'priority'), style: const TextStyle(color: Nx.danger, fontSize: 9, fontWeight: FontWeight.w700))),
-            const SizedBox(width: 4)],
-          Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: stageBg(order.stage), borderRadius: BorderRadius.circular(99)),
-            child: Text('${order.elapsedMinutes} min', style: TextStyle(color: c, fontSize: 9, fontWeight: FontWeight.w700))),
-        ]),
-        const SizedBox(height: 10),
-        Row(children: [
-          if (_prev != null) ...[
-            Expanded(child: _ActionBtn(label: 'â† ${stageLabel(lang, _prev!)}', color: Nx.textSecondary, bg: Nx.surfaceAlt, onTap: () => onMove(order, _prev!))),
-            const SizedBox(width: 6)],
-          if (_next != null)
-            Expanded(child: _ActionBtn(label: '${stageLabel(lang, _next!)} â†’', color: c, bg: stageBg(_next!), onTap: () => onMove(order, _next!)))
-          else
-            Expanded(child: _ActionBtn(label: 'âœ“ ${L10n.t(lang, 'served')}', color: Nx.success, bg: Nx.successBg, onTap: () {})),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: m.positive ? C.forestBg : C.dangerBg, borderRadius: BorderRadius.circular(4)),
+            child: Text(m.delta, style: TextStyle(color: m.positive ? C.forest : C.danger, fontSize: 10, fontWeight: FontWeight.w700))),
+          const SizedBox(width: 5),
+          Expanded(child: Text(T.t(l, m.captionKey), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: C.textMut, fontSize: 10))),
         ]),
       ]));
   }
 }
 
-class _ActionBtn extends StatelessWidget {
-  const _ActionBtn({required this.label, required this.color, required this.bg, required this.onTap});
-  final String label; final Color color, bg; final VoidCallback onTap;
-  @override Widget build(BuildContext context) {
-    return InkWell(borderRadius: BorderRadius.circular(6), onTap: onTap,
-      child: Container(padding: const EdgeInsets.symmetric(vertical: 6), alignment: Alignment.center,
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6), border: Border.all(color: color.withValues(alpha: 0.2))),
-        child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700))));
-  }
-}
 
-// === PANEL ===
-class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.icon, required this.child, this.expand = false});
-  final String title; final IconData icon; final Widget child; final bool expand;
+// === FLOOR PLAN SCREEN ===
+class _FloorScreen extends StatelessWidget {
+  const _FloorScreen({required this.l, required this.tables, required this.onStatus});
+  final AppLanguage l; final List<FloorTable> tables; final void Function(int, FloorStatus) onStatus;
   @override Widget build(BuildContext context) {
-    return Container(padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Nx.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Nx.border),
-        boxShadow: const [BoxShadow(color: Nx.shadow, blurRadius: 4, offset: Offset(0, 2))]),
-      child: Column(mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(icon, size: 18, color: Nx.textSecondary), const SizedBox(width: 8),
-          Text(title, style: const TextStyle(color: Nx.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
-        ]),
-        const SizedBox(height: 14),
-        if (expand) Expanded(child: child) else child,
-      ]));
-  }
-}
-
-
-// === INSIGHTS SCREEN ===
-class _InsightsScreen extends StatelessWidget {
-  const _InsightsScreen({required this.lang});
-  final AppLanguage lang;
-  @override Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.all(20), child: Column(children: [
+    return Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Expanded(child: _SummaryCard(label: L10n.t(lang, 'revenueToday'), value: formatCurrency(1452.80, lang), icon: Icons.trending_up, color: Nx.success)),
+        Icon(Icons.map_outlined, size: 18, color: C.textSec), const SizedBox(width: 8),
+        Text(T.t(l, 'floorMap'), style: const TextStyle(color: C.text, fontSize: 16, fontWeight: FontWeight.w700)),
+        const Spacer(),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: C.amberBg, borderRadius: BorderRadius.circular(4), border: Border.all(color: C.amber.withValues(alpha: 0.3))),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.door_front_door_outlined, size: 14, color: C.amber), const SizedBox(width: 4),
+            Text(T.t(l, 'entrance'), style: const TextStyle(color: C.amber, fontSize: 11, fontWeight: FontWeight.w700))])),
         const SizedBox(width: 12),
-        Expanded(child: _SummaryCard(label: L10n.t(lang, 'totalOrders'), value: '47', icon: Icons.receipt_long, color: Nx.primary)),
-        const SizedBox(width: 12),
-        Expanded(child: _SummaryCard(label: L10n.t(lang, 'avgTableTime'), value: '48 min', icon: Icons.timer_outlined, color: Nx.warning)),
+        // Legend
+        for (final s in FloorStatus.values) ...[
+          Container(width: 10, height: 10, margin: const EdgeInsets.only(left: 8), decoration: BoxDecoration(color: statusCol(s), borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 4),
+          Text(statusLbl(l, s), style: const TextStyle(color: C.textSec, fontSize: 10, fontWeight: FontWeight.w500)),
+        ],
       ]),
-      const SizedBox(height: 16),
-      Expanded(child: Row(children: [
-        Expanded(child: _ChartPanel(title: L10n.t(lang, 'weeklyRevenue'), child: _WeeklyChart(lang: lang))),
-        const SizedBox(width: 16),
-        Expanded(child: _ChartPanel(title: L10n.t(lang, 'peakHours'), child: const _PeakChart())),
-      ])),
+      const SizedBox(height: 14),
+      Expanded(child: LayoutBuilder(builder: (ctx, c) {
+        final cols = c.maxWidth >= 900 ? 8 : c.maxWidth >= 600 ? 6 : 4;
+        return GridView.builder(itemCount: tables.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: cols, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1.0),
+          itemBuilder: (_, i) => _FloorTile(t: tables[i], l: l, onStatus: (s) => onStatus(i, s)));
+      })),
     ]));
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.label, required this.value, required this.icon, required this.color});
-  final String label, value; final IconData icon; final Color color;
+class _FloorTile extends StatelessWidget {
+  const _FloorTile({required this.t, required this.l, required this.onStatus});
+  final FloorTable t; final AppLanguage l; final void Function(FloorStatus) onStatus;
   @override Widget build(BuildContext context) {
-    return Container(padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Nx.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Nx.border),
-        boxShadow: const [BoxShadow(color: Nx.shadow, blurRadius: 4, offset: Offset(0, 2))]),
-      child: Row(children: [
-        Container(width: 40, height: 40, decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, color: color, size: 20)),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(color: Nx.textSecondary, fontSize: 11, fontWeight: FontWeight.w500)),
+    final col = statusCol(t.status); final bg = statusBg(t.status);
+    final round = t.shape == TableShape.round;
+    return InkWell(borderRadius: BorderRadius.circular(round ? 99 : 8),
+      onTap: () => showDialog(context: context, builder: (_) => _TableStatusDialog(t: t, l: l, onStatus: onStatus)),
+      child: Container(decoration: BoxDecoration(color: bg, shape: round ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: round ? null : BorderRadius.circular(8), border: Border.all(color: col, width: 1.5)),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Text('${t.number}', style: TextStyle(color: col, fontSize: 20, fontWeight: FontWeight.w900)),
           const SizedBox(height: 2),
-          Text(value, style: const TextStyle(color: Nx.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
-        ])),
-      ]));
-  }
-}
-
-class _ChartPanel extends StatelessWidget {
-  const _ChartPanel({required this.title, required this.child});
-  final String title; final Widget child;
-  @override Widget build(BuildContext context) {
-    return Container(padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Nx.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Nx.border),
-        boxShadow: const [BoxShadow(color: Nx.shadow, blurRadius: 4, offset: Offset(0, 2))]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: const TextStyle(color: Nx.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 20), Expanded(child: child),
-      ]));
-  }
-}
-
-class _WeeklyChart extends StatelessWidget {
-  const _WeeklyChart({required this.lang});
-  final AppLanguage lang;
-  @override Widget build(BuildContext context) {
-    final data = [1240.0, 980, 1350, 1100, 1580, 1820, 1650];
-    final labels = lang == AppLanguage.en ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-      : lang == AppLanguage.es ? ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
-      : ['Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg'];
-    final mx = data.reduce(math.max);
-    return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-      for (var i = 0; i < data.length; i++) ...[
-        Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-          Text(formatCurrency(data[i].toDouble(), lang).split(' ').first, style: const TextStyle(color: Nx.textMuted, fontSize: 9, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          FractionallySizedBox(widthFactor: 0.7,
-            child: Container(height: (data[i] / mx) * 180, decoration: BoxDecoration(
-              color: i == 5 ? Nx.primary : Nx.primaryBg, borderRadius: BorderRadius.circular(4)))),
-          const SizedBox(height: 8),
-          Text(labels[i], style: const TextStyle(color: Nx.textSecondary, fontSize: 10, fontWeight: FontWeight.w600)),
-        ])),
-        if (i < data.length - 1) const SizedBox(width: 4),
-      ]]);
-  }
-}
-
-class _PeakChart extends StatelessWidget {
-  const _PeakChart();
-  @override Widget build(BuildContext context) {
-    final data = [2, 5, 12, 18, 22, 15, 20, 24, 18, 8, 3, 1];
-    final hours = List.generate(12, (i) => '${i + 11}h');
-    final mx = data.reduce(math.max);
-    return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-      for (var i = 0; i < data.length; i++) ...[
-        Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-          Text('${data[i]}', style: const TextStyle(color: Nx.textMuted, fontSize: 9, fontWeight: FontWeight.w600)),
+          Text('${t.seats} ${T.t(l, 'covers')}', style: TextStyle(color: col.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          FractionallySizedBox(widthFactor: 0.65,
-            child: Container(height: (data[i] / mx) * 180, decoration: BoxDecoration(
-              color: data[i] == mx ? Nx.warning : Nx.warningBg, borderRadius: BorderRadius.circular(4)))),
-          const SizedBox(height: 8),
-          Text(hours[i], style: const TextStyle(color: Nx.textSecondary, fontSize: 8, fontWeight: FontWeight.w600)),
-        ])),
-        if (i < data.length - 1) const SizedBox(width: 2),
-      ]]);
+          Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: col, borderRadius: BorderRadius.circular(4)),
+            child: Text(statusLbl(l, t.status), style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700))),
+        ])));
+  }
+}
+
+class _TableStatusDialog extends StatelessWidget {
+  const _TableStatusDialog({required this.t, required this.l, required this.onStatus});
+  final FloorTable t; final AppLanguage l; final void Function(FloorStatus) onStatus;
+  @override Widget build(BuildContext context) {
+    return AlertDialog(backgroundColor: C.surface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: Text('${T.t(l, 'table')} ${t.number}', style: const TextStyle(color: C.text, fontWeight: FontWeight.w800, fontSize: 18)),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        for (final s in FloorStatus.values) Padding(padding: const EdgeInsets.only(bottom: 6),
+          child: InkWell(borderRadius: BorderRadius.circular(8),
+            onTap: () { onStatus(s); Navigator.pop(context); },
+            child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(color: t.status == s ? statusBg(s) : C.warm, borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: t.status == s ? statusCol(s) : C.borderLight)),
+              child: Row(children: [
+                Container(width: 12, height: 12, decoration: BoxDecoration(color: statusCol(s), borderRadius: BorderRadius.circular(3))),
+                const SizedBox(width: 10),
+                Text(statusLbl(l, s), style: TextStyle(color: t.status == s ? statusCol(s) : C.text, fontSize: 14, fontWeight: FontWeight.w600)),
+                const Spacer(),
+                if (t.status == s) Icon(Icons.check_circle, size: 18, color: statusCol(s)),
+              ]))))
+      ]));
+  }
+}
+
+// === KANBAN (Kitchen + Live) ===
+class _KitchenScreen extends StatelessWidget {
+  const _KitchenScreen({required this.l, required this.orders, required this.onMove});
+  final AppLanguage l; final List<LiveOrder> orders; final void Function(LiveOrder, OrderStage) onMove;
+  @override Widget build(BuildContext context) {
+    return Padding(padding: const EdgeInsets.all(16), child: _Kanban(l: l, orders: orders, onMove: onMove));
+  }
+}
+
+class _Kanban extends StatelessWidget {
+  const _Kanban({required this.l, required this.orders, required this.onMove});
+  final AppLanguage l; final List<LiveOrder> orders; final void Function(LiveOrder, OrderStage) onMove;
+  @override Widget build(BuildContext context) {
+    return Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: C.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: C.border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [const Icon(Icons.receipt_long, size: 16, color: C.textSec), const SizedBox(width: 6),
+          Text(T.t(l, 'liveOrders'), style: const TextStyle(color: C.text, fontSize: 15, fontWeight: FontWeight.w700))]),
+        const SizedBox(height: 10), Container(height: 1, color: C.border), const SizedBox(height: 10),
+        Expanded(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          for (final s in OrderStage.values) ...[
+            Expanded(child: _OrdCol(stage: s, l: l, orders: orders.where((o) => o.stage == s).toList(), onMove: onMove)),
+            if (s != OrderStage.values.last) const SizedBox(width: 8),
+          ]]))]));
+  }
+}
+
+class _OrdCol extends StatelessWidget {
+  const _OrdCol({required this.stage, required this.l, required this.orders, required this.onMove});
+  final OrderStage stage; final AppLanguage l; final List<LiveOrder> orders; final void Function(LiveOrder, OrderStage) onMove;
+  @override Widget build(BuildContext context) {
+    final col = stageCol(stage); final bg = stageBg(stage);
+    return Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: C.warm, borderRadius: BorderRadius.circular(8), border: Border.all(color: C.borderLight)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: col, shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          Expanded(child: Text(stageLbl(l, stage), style: const TextStyle(color: C.text, fontSize: 13, fontWeight: FontWeight.w700))),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4), border: Border.all(color: col.withValues(alpha: 0.2))),
+            child: Text('${orders.length}', style: TextStyle(color: col, fontSize: 11, fontWeight: FontWeight.w800))),
+        ]),
+        const SizedBox(height: 8),
+        Expanded(child: orders.isEmpty
+          ? Center(child: Text(T.t(l, 'noOrders'), style: const TextStyle(color: C.textMut, fontSize: 11)))
+          : ListView.separated(itemCount: orders.length, separatorBuilder: (_, __) => const SizedBox(height: 6),
+              itemBuilder: (_, i) => _OrdCard(o: orders[i], l: l, onMove: onMove))),
+      ]));
+  }
+}
+
+class _OrdCard extends StatelessWidget {
+  const _OrdCard({required this.o, required this.l, required this.onMove});
+  final LiveOrder o; final AppLanguage l; final void Function(LiveOrder, OrderStage) onMove;
+  OrderStage? get _prev => o.stage == OrderStage.fresh ? null : o.stage == OrderStage.cooking ? OrderStage.fresh : OrderStage.cooking;
+  OrderStage? get _next => o.stage == OrderStage.fresh ? OrderStage.cooking : o.stage == OrderStage.cooking ? OrderStage.ready : null;
+  @override Widget build(BuildContext context) {
+    final col = stageCol(o.stage);
+    return Container(padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: C.surface, borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: o.priority ? C.danger : C.border, width: o.priority ? 1.5 : 1)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Text('${T.t(l, 'table')} ${o.tableNumber}', style: const TextStyle(color: C.text, fontSize: 13, fontWeight: FontWeight.w800)),
+          const Spacer(),
+          if (o.priority) Container(padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(color: C.danger, borderRadius: BorderRadius.circular(3)),
+            child: Text(T.t(l, 'priority'), style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800))),
+          Text(o.id, style: const TextStyle(color: C.textMut, fontSize: 10)),
+        ]),
+        if (o.note != null) ...[const SizedBox(height: 5),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: C.dangerBg, borderRadius: BorderRadius.circular(4), border: Border.all(color: C.danger.withValues(alpha: 0.2))),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.warning_amber_rounded, size: 12, color: C.danger), const SizedBox(width: 4),
+              Flexible(child: Text(o.note!, style: const TextStyle(color: C.danger, fontSize: 10, fontWeight: FontWeight.w600)))]))],
+        const SizedBox(height: 6),
+        Text('${o.guests} ${T.t(l, 'guests')}', style: const TextStyle(color: C.textSec, fontSize: 10)),
+        const SizedBox(height: 5),
+        for (final ln in o.lines) Padding(padding: const EdgeInsets.only(bottom: 2),
+          child: Row(children: [
+            Expanded(child: Text('${ln.qty}x ${ln.name}', style: const TextStyle(color: C.textSec, fontSize: 11, fontWeight: FontWeight.w500))),
+            if (ln.note != null) Tooltip(message: ln.note!, child: const Icon(Icons.chat_bubble_outline, size: 10, color: C.amber)),
+          ])),
+        const SizedBox(height: 6),
+        Row(children: [
+          Text(fmtCur(o.total, l), style: const TextStyle(color: C.text, fontSize: 12, fontWeight: FontWeight.w800)),
+          const Spacer(),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: stageBg(o.stage), borderRadius: BorderRadius.circular(4)),
+            child: Text('${o.elapsedMinutes} min', style: TextStyle(color: col, fontSize: 9, fontWeight: FontWeight.w700))),
+        ]),
+        const SizedBox(height: 8), Container(height: 1, color: C.borderLight), const SizedBox(height: 6),
+        Row(children: [
+          if (_prev != null) ...[Expanded(child: _SmBtn(label: 'â† ${stageLbl(l, _prev!)}', col: C.textSec, bg: C.warm, onTap: () => onMove(o, _prev!))), const SizedBox(width: 4)],
+          if (_next != null) Expanded(child: _SmBtn(label: '${stageLbl(l, _next!)} â†’', col: stageCol(_next!), bg: stageBg(_next!), onTap: () => onMove(o, _next!)))
+          else Expanded(child: _SmBtn(label: 'âœ“ ${T.t(l, 'served')}', col: C.forest, bg: C.forestBg, onTap: () {})),
+        ]),
+      ]));
+  }
+}
+
+class _SmBtn extends StatelessWidget {
+  const _SmBtn({required this.label, required this.col, required this.bg, required this.onTap});
+  final String label; final Color col, bg; final VoidCallback onTap;
+  @override Widget build(BuildContext context) {
+    return InkWell(borderRadius: BorderRadius.circular(5), onTap: onTap,
+      child: Container(padding: const EdgeInsets.symmetric(vertical: 5), alignment: Alignment.center,
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5), border: Border.all(color: col.withValues(alpha: 0.2))),
+        child: Text(label, style: TextStyle(color: col, fontSize: 10, fontWeight: FontWeight.w700))));
+  }
+}
+
+
+// === POS ORDER WIZARD ===
+class _POSWizard extends StatefulWidget {
+  const _POSWizard({required this.l, required this.tables, required this.onClose, required this.onSend});
+  final AppLanguage l; final List<FloorTable> tables; final VoidCallback onClose; final void Function(LiveOrder) onSend;
+  @override State<_POSWizard> createState() => _POSWizardState();
+}
+class _POSWizardState extends State<_POSWizard> {
+  String _cat = menuCategories.first;
+  final List<OrderLine> _cart = [];
+  int _table = 1;
+  int _guests = 2;
+  final _noteCtrl = TextEditingController();
+
+  void _addItem(MenuProduct p) { setState(() {
+    final i = _cart.indexWhere((l) => l.name == p.name);
+    if (i >= 0) { _cart[i] = OrderLine(qty: _cart[i].qty + 1, name: _cart[i].name, price: _cart[i].price, note: _cart[i].note); }
+    else { _cart.add(OrderLine(qty: 1, name: p.name, price: p.price)); }
+  }); }
+  void _removeItem(int i) { setState(() { if (_cart[i].qty > 1) { _cart[i] = OrderLine(qty: _cart[i].qty - 1, name: _cart[i].name, price: _cart[i].price); } else { _cart.removeAt(i); } }); }
+  double get _total => _cart.fold(0.0, (s, l) => s + l.qty * l.price);
+
+  void _send() {
+    if (_cart.isEmpty) return;
+    final order = LiveOrder(id: 'N-${1055 + math.Random().nextInt(900)}', tableNumber: _table, guests: _guests,
+      lines: List.of(_cart), elapsedMinutes: 0, stage: OrderStage.fresh, note: _noteCtrl.text.isEmpty ? null : _noteCtrl.text);
+    widget.onSend(order);
+  }
+
+  @override void dispose() { _noteCtrl.dispose(); super.dispose(); }
+
+  @override Widget build(BuildContext context) {
+    final l = widget.l;
+    return Material(color: Colors.black54,
+      child: Center(child: Container(width: 1060, height: 640,
+        decoration: BoxDecoration(color: C.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: C.border, width: 2)),
+        child: Column(children: [
+          // Header
+          Container(height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: const BoxDecoration(color: C.burg, borderRadius: BorderRadius.vertical(top: Radius.circular(10))),
+            child: Row(children: [
+              const Icon(Icons.point_of_sale, size: 18, color: Colors.white), const SizedBox(width: 8),
+              Text(T.t(l, 'newOrder'), style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              // Table selector
+              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text('${T.t(l, 'table')}:', style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 4),
+                  DropdownButton<int>(value: _table, isDense: true, underline: const SizedBox.shrink(), dropdownColor: C.surface,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+                    iconEnabledColor: Colors.white70, iconSize: 16,
+                    items: widget.tables.map((t) => DropdownMenuItem(value: t.number, child: Text('${t.number}', style: const TextStyle(color: C.text, fontSize: 13, fontWeight: FontWeight.w700)))).toList(),
+                    onChanged: (v) => setState(() => _table = v!)),
+                ])),
+              const SizedBox(width: 8),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.people_outline, size: 14, color: Colors.white70), const SizedBox(width: 4),
+                  DropdownButton<int>(value: _guests, isDense: true, underline: const SizedBox.shrink(), dropdownColor: C.surface,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+                    iconEnabledColor: Colors.white70, iconSize: 16,
+                    items: [1,2,3,4,5,6,7,8].map((g) => DropdownMenuItem(value: g, child: Text('$g', style: const TextStyle(color: C.text, fontSize: 13, fontWeight: FontWeight.w700)))).toList(),
+                    onChanged: (v) => setState(() => _guests = v!)),
+                ])),
+              const SizedBox(width: 12),
+              InkWell(onTap: widget.onClose, child: const Icon(Icons.close, size: 20, color: Colors.white70)),
+            ])),
+          // Body
+          Expanded(child: Row(children: [
+            // Categories
+            Container(width: 130, color: C.warm, child: Column(children: [
+              for (final cat in menuCategories)
+                InkWell(onTap: () => setState(() => _cat = cat),
+                  child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(color: _cat == cat ? C.surface : Colors.transparent, border: Border(left: BorderSide(color: _cat == cat ? C.burg : Colors.transparent, width: 3), bottom: const BorderSide(color: C.borderLight))),
+                    child: Text(cat, style: TextStyle(color: _cat == cat ? C.burg : C.textSec, fontSize: 13, fontWeight: FontWeight.w600)))),
+            ])),
+            Container(width: 1, color: C.border),
+            // Product grid
+            Expanded(child: Padding(padding: const EdgeInsets.all(12),
+              child: GridView.count(crossAxisCount: 4, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1.8,
+                children: menuProducts.where((p) => p.category == _cat).map((p) =>
+                  InkWell(borderRadius: BorderRadius.circular(8), onTap: () => _addItem(p),
+                    child: Container(padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: C.warm, borderRadius: BorderRadius.circular(8), border: Border.all(color: C.border)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: C.text, fontSize: 12, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        Text(fmtCur(p.price, l), style: const TextStyle(color: C.burg, fontSize: 13, fontWeight: FontWeight.w800)),
+                      ])))).toList()))),
+            Container(width: 1, color: C.border),
+            // Cart / Ticket
+            SizedBox(width: 280, child: Column(children: [
+              Container(padding: const EdgeInsets.all(12), decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: C.border))),
+                child: Row(children: [const Icon(Icons.receipt, size: 16, color: C.burg), const SizedBox(width: 6),
+                  Text(T.t(l, 'ticket'), style: const TextStyle(color: C.text, fontSize: 14, fontWeight: FontWeight.w700)),
+                  const Spacer(), Text('${_cart.length} items', style: const TextStyle(color: C.textMut, fontSize: 11))])),
+              Expanded(child: _cart.isEmpty
+                ? const Center(child: Text('â€”', style: TextStyle(color: C.textMut, fontSize: 20)))
+                : ListView.builder(padding: const EdgeInsets.all(8), itemCount: _cart.length, itemBuilder: (_, i) {
+                    final ln = _cart[i];
+                    return Container(margin: const EdgeInsets.only(bottom: 6), padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: C.warm, borderRadius: BorderRadius.circular(6)),
+                      child: Row(children: [
+                        InkWell(onTap: () => _removeItem(i), child: Container(width: 22, height: 22, decoration: BoxDecoration(color: C.dangerBg, borderRadius: BorderRadius.circular(4)),
+                          child: const Icon(Icons.remove, size: 14, color: C.danger))),
+                        const SizedBox(width: 6),
+                        Text('${ln.qty}', style: const TextStyle(color: C.text, fontSize: 13, fontWeight: FontWeight.w800)),
+                        const SizedBox(width: 6),
+                        InkWell(onTap: () => _addItem(MenuProduct(name: ln.name, price: ln.price, category: '')),
+                          child: Container(width: 22, height: 22, decoration: BoxDecoration(color: C.forestBg, borderRadius: BorderRadius.circular(4)),
+                            child: const Icon(Icons.add, size: 14, color: C.forest))),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(ln.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: C.text, fontSize: 11, fontWeight: FontWeight.w500))),
+                        Text(fmtCur(ln.qty * ln.price, l), style: const TextStyle(color: C.textSec, fontSize: 11, fontWeight: FontWeight.w700)),
+                      ]));
+                  })),
+              // Note input
+              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: const BoxDecoration(border: Border(top: BorderSide(color: C.borderLight))),
+                child: TextField(controller: _noteCtrl, style: const TextStyle(fontSize: 12, color: C.text),
+                  decoration: InputDecoration(hintText: '${T.t(l, 'note')}...', hintStyle: const TextStyle(color: C.textMut, fontSize: 12),
+                    prefixIcon: const Icon(Icons.note_alt_outlined, size: 16, color: C.textMut), isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8), border: InputBorder.none))),
+              // Total + Send
+              Container(padding: const EdgeInsets.all(12), decoration: const BoxDecoration(border: Border(top: BorderSide(color: C.border))),
+                child: Column(children: [
+                  Row(children: [Text(T.t(l, 'total'), style: const TextStyle(color: C.textSec, fontSize: 13, fontWeight: FontWeight.w600)),
+                    const Spacer(), Text(fmtCur(_total, l), style: const TextStyle(color: C.text, fontSize: 18, fontWeight: FontWeight.w900))]),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Expanded(child: InkWell(onTap: widget.onClose, borderRadius: BorderRadius.circular(6),
+                      child: Container(padding: const EdgeInsets.symmetric(vertical: 10), alignment: Alignment.center,
+                        decoration: BoxDecoration(color: C.warm, borderRadius: BorderRadius.circular(6), border: Border.all(color: C.border)),
+                        child: Text(T.t(l, 'cancel'), style: const TextStyle(color: C.textSec, fontSize: 12, fontWeight: FontWeight.w700))))),
+                    const SizedBox(width: 8),
+                    Expanded(flex: 2, child: InkWell(onTap: _send, borderRadius: BorderRadius.circular(6),
+                      child: Container(padding: const EdgeInsets.symmetric(vertical: 10), alignment: Alignment.center,
+                        decoration: BoxDecoration(color: _cart.isEmpty ? C.textMut : C.forest, borderRadius: BorderRadius.circular(6)),
+                        child: Text(T.t(l, 'send'), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800))))),
+                  ]),
+                ])),
+            ])),
+          ])),
+        ]))));
+  }
+}
+
+// === PRODUCTS SCREEN ===
+class _ProductsScreen extends StatelessWidget {
+  const _ProductsScreen({required this.l});
+  final AppLanguage l;
+  @override Widget build(BuildContext context) {
+    return Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Icon(Icons.inventory_2_outlined, size: 18, color: C.textSec), const SizedBox(width: 8),
+        Text(T.t(l, 'products'), style: const TextStyle(color: C.text, fontSize: 16, fontWeight: FontWeight.w700)),
+        const Spacer(),
+        _Btn(label: '+ ${T.t(l, 'createProduct')}', color: C.burg, onTap: () {}),
+      ]),
+      const SizedBox(height: 12),
+      Expanded(child: Container(decoration: BoxDecoration(color: C.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: C.border)),
+        child: Column(children: [
+          Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), decoration: const BoxDecoration(color: C.warm, borderRadius: BorderRadius.vertical(top: Radius.circular(7))),
+            child: const Row(children: [
+              Expanded(flex: 3, child: Text('Nombre', style: TextStyle(color: C.textSec, fontSize: 11, fontWeight: FontWeight.w700))),
+              Expanded(flex: 2, child: Text('Categoria', style: TextStyle(color: C.textSec, fontSize: 11, fontWeight: FontWeight.w700))),
+              SizedBox(width: 80, child: Text('Precio', textAlign: TextAlign.right, style: TextStyle(color: C.textSec, fontSize: 11, fontWeight: FontWeight.w700))),
+            ])),
+          Expanded(child: ListView.separated(itemCount: menuProducts.length, separatorBuilder: (_, __) => const Divider(height: 1, color: C.borderLight),
+            itemBuilder: (_, i) {
+              final p = menuProducts[i];
+              return Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(children: [
+                  Expanded(flex: 3, child: Text(p.name, style: const TextStyle(color: C.text, fontSize: 13, fontWeight: FontWeight.w500))),
+                  Expanded(flex: 2, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: C.warm, borderRadius: BorderRadius.circular(4)),
+                    child: Text(p.category, style: const TextStyle(color: C.textSec, fontSize: 10, fontWeight: FontWeight.w600)))),
+                  SizedBox(width: 80, child: Text(fmtCur(p.price, l), textAlign: TextAlign.right, style: const TextStyle(color: C.burg, fontSize: 13, fontWeight: FontWeight.w700))),
+                ]));
+            })),
+        ]))),
+    ]));
   }
 }
 
 // === SETTINGS SCREEN ===
 class _SettingsScreen extends StatefulWidget {
-  const _SettingsScreen({required this.controller});
-  final AppController controller;
+  const _SettingsScreen({required this.ctrl});
+  final AppController ctrl;
   @override State<_SettingsScreen> createState() => _SettingsScreenState();
 }
 class _SettingsScreenState extends State<_SettingsScreen> {
-  late final TextEditingController _nameCtrl;
-  @override void initState() { super.initState(); _nameCtrl = TextEditingController(text: widget.controller.restaurantName); }
-  @override void dispose() { _nameCtrl.dispose(); super.dispose(); }
+  late final TextEditingController _nc;
+  @override void initState() { super.initState(); _nc = TextEditingController(text: widget.ctrl.restaurantName); }
+  @override void dispose() { _nc.dispose(); super.dispose(); }
   @override Widget build(BuildContext context) {
-    final lang = widget.controller.language;
-    return Padding(padding: const EdgeInsets.all(20), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(L10n.t(lang, 'navSettings'), style: const TextStyle(color: Nx.textPrimary, fontSize: 20, fontWeight: FontWeight.w800)),
-      const SizedBox(height: 24),
-      // General section
-      Container(padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: Nx.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Nx.border),
-          boxShadow: const [BoxShadow(color: Nx.shadow, blurRadius: 4, offset: Offset(0, 2))]),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(L10n.t(lang, 'general'), style: const TextStyle(color: Nx.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 20),
-          Text(L10n.t(lang, 'restaurantName'), style: const TextStyle(color: Nx.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          SizedBox(width: 400, child: TextField(controller: _nameCtrl,
-            onChanged: (v) => widget.controller.setRestaurantName(v),
-            style: const TextStyle(color: Nx.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
-            decoration: InputDecoration(hintText: 'Restaurant name', hintStyle: const TextStyle(color: Nx.textMuted),
-              filled: true, fillColor: Nx.surfaceAlt, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Nx.border)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Nx.border)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Nx.primary, width: 1.5))))),
-          const SizedBox(height: 24),
-          Text(L10n.t(lang, 'uploadLogo'), style: const TextStyle(color: Nx.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          InkWell(onTap: () {}, borderRadius: BorderRadius.circular(8),
-            child: Container(width: 400, height: 120,
-              decoration: BoxDecoration(color: Nx.surfaceAlt, borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Nx.border, style: BorderStyle.solid)),
-              child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.cloud_upload_outlined, size: 32, color: Nx.textMuted),
-                SizedBox(height: 8),
-                Text('Click to upload', style: TextStyle(color: Nx.textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
-              ]))),
-        ])),
+    final l = widget.ctrl.language;
+    return Padding(padding: const EdgeInsets.all(16), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(T.t(l, 'navSettings'), style: const TextStyle(color: C.text, fontSize: 18, fontWeight: FontWeight.w800)),
       const SizedBox(height: 20),
-      // Language section
-      Container(padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: Nx.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Nx.border),
-          boxShadow: const [BoxShadow(color: Nx.shadow, blurRadius: 4, offset: Offset(0, 2))]),
+      Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: C.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: C.border)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(L10n.t(lang, 'language'), style: const TextStyle(color: Nx.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 16),
+          Text(T.t(l, 'general'), style: const TextStyle(color: C.text, fontSize: 15, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 14),
+          Text(T.t(l, 'restaurantName'), style: const TextStyle(color: C.textSec, fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          SizedBox(width: 380, child: TextField(controller: _nc, onChanged: widget.ctrl.setName,
+            style: const TextStyle(color: C.text, fontSize: 14),
+            decoration: InputDecoration(filled: true, fillColor: C.warm, contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: C.border)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: C.border)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: C.burg, width: 1.5))))),
+        ])),
+      const SizedBox(height: 16),
+      Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: C.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: C.border)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(T.t(l, 'language'), style: const TextStyle(color: C.text, fontSize: 15, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
           for (final item in AppLanguage.values)
-            Padding(padding: const EdgeInsets.only(bottom: 8),
-              child: InkWell(borderRadius: BorderRadius.circular(8), onTap: () => widget.controller.setLanguage(item),
-                child: Container(width: 400, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(color: item == lang ? Nx.primaryBg : Nx.surfaceAlt, borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: item == lang ? Nx.primary.withValues(alpha: 0.3) : Nx.border)),
+            Padding(padding: const EdgeInsets.only(bottom: 6),
+              child: InkWell(borderRadius: BorderRadius.circular(6), onTap: () => widget.ctrl.setLanguage(item),
+                child: Container(width: 380, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(color: item == l ? C.burgBg : C.warm, borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: item == l ? C.burg.withValues(alpha: 0.3) : C.borderLight)),
                   child: Row(children: [
-                    Icon(item == lang ? Icons.radio_button_checked : Icons.radio_button_off, size: 18, color: item == lang ? Nx.primary : Nx.textMuted),
-                    const SizedBox(width: 10),
-                    Text(item.label, style: TextStyle(color: item == lang ? Nx.primary : Nx.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    Icon(item == l ? Icons.radio_button_checked : Icons.radio_button_off, size: 16, color: item == l ? C.burg : C.textMut),
+                    const SizedBox(width: 8),
+                    Text(item.label, style: TextStyle(color: item == l ? C.burg : C.text, fontSize: 13, fontWeight: FontWeight.w600)),
                   ])))),
         ])),
     ])));
